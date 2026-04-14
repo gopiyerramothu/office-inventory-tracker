@@ -201,9 +201,10 @@ export default function App() {
             <input
               type="file"
               accept="image/*"
+              capture="environment"
               onChange={handleScan}
               style={{ display: "none" }}
-              aria-label="Upload equipment image for scanning"
+              aria-label="Take a photo of equipment for scanning"
             />
           </label>
           <button
