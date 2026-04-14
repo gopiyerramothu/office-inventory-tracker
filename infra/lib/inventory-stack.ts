@@ -51,7 +51,7 @@ export class InventoryStack extends cdk.Stack {
     imageBucket.grantReadWrite(apiHandler);
     apiHandler.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["rekognition:DetectLabels"],
+        actions: ["rekognition:DetectLabels", "rekognition:DetectText"],
         resources: ["*"],
       })
     );

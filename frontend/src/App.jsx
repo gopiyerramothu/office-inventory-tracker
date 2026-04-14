@@ -34,15 +34,9 @@ const STATUS_COLORS = {
 };
 
 const ROOMS = [
-  "Reception",
-  "Conference Room A",
-  "Conference Room B",
-  "Open Floor",
-  "Server Room",
-  "Kitchen",
-  "Manager Office",
-  "Storage",
-  "Other",
+  "Suite 180",
+  "Suite 300",
+  "Others",
 ];
 
 const USERS_AUTH = {
@@ -152,7 +146,7 @@ function UserPanel({ auth, onLogout }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Electronics");
   const [assignedTo, setAssignedTo] = useState("");
-  const [room, setRoom] = useState("Open Floor");
+  const [room, setRoom] = useState("Suite 180");
   const [status, setStatus] = useState("Working");
   const [serialNumber, setSerialNumber] = useState("");
   const [brand, setBrand] = useState("");
@@ -160,6 +154,7 @@ function UserPanel({ auth, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [detectedLabels, setDetectedLabels] = useState([]);
+  const [detectedText, setDetectedText] = useState([]);
   const [success, setSuccess] = useState("");
 
   async function handleAdd(e) {
@@ -169,7 +164,7 @@ function UserPanel({ auth, onLogout }) {
     try {
       await addItem({ name, category, assignedTo, room, status, serialNumber, brand, addedBy: auth.username, notes });
       setSuccess(`"${name}" added to inventory!`);
-      setName(""); setCategory("Electronics"); setAssignedTo(""); setRoom("Open Floor");
+      setName(""); setCategory("Electronics"); setAssignedTo(""); setRoom("Suite 180");
       setStatus("Working"); setSerialNumber(""); setBrand(""); setNotes(""); setDetectedLabels([]);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -185,9 +180,32 @@ function UserPanel({ auth, onLogout }) {
     try {
       const { uploadUrl, key } = await getUploadUrl();
       await uploadImage(uploadUrl, file);
-      const { labels } = await detectLabels(key);
+      const result = await detectLabels(key);
+      const { labels = [], textLines = [], parsed = {} } = result;
+
       setDetectedLabels(labels);
+      setDetectedText(textLines);
+
+      // Auto-fill equipment name from top label
       if (labels.length > 0 && !name) setName(labels[0].name);
+
+      // Auto-fill brand if detected
+      if (parsed.brand && !brand) setBrand(parsed.brand + (parsed.model ? ` ${parsed.model}` : ""));
+
+      // Auto-fill serial number if detected
+      if (parsed.serialNumber && !serialNumber) setSerialNumber(parsed.serialNumber);
+
+      // Try to guess category from labels
+      const labelNames = labels.map((l) => l.name.toLowerCase());
+      if (!category || category === "Electronics") {
+        if (labelNames.some((n) => ["router", "modem", "switch", "cable"].includes(n))) {
+          setCategory("Networking");
+        } else if (labelNames.some((n) => ["keyboard", "mouse", "headset", "webcam", "headphones"].includes(n))) {
+          setCategory("Peripherals");
+        } else if (labelNames.some((n) => ["chair", "desk", "table", "shelf", "cabinet"].includes(n))) {
+          setCategory("Furniture");
+        }
+      }
     } catch (err) {
       alert("Scan failed: " + err.message);
     }
@@ -262,9 +280,14 @@ function UserPanel({ auth, onLogout }) {
               </div>
             </div>
 
-            {detectedLabels.length > 0 && (
+            {(detectedLabels.length > 0 || detectedText.length > 0) && (
               <div style={{ background: "#fef3c7", padding: 12, borderRadius: 10, marginBottom: 14, fontSize: 13, border: "1px solid #fde68a" }}>
-                🔍 Detected: {detectedLabels.map((l) => `${l.name} (${l.confidence}%)`).join(", ")}
+                {detectedLabels.length > 0 && (
+                  <div>🏷️ Items: {detectedLabels.slice(0, 5).map((l) => `${l.name} (${l.confidence}%)`).join(", ")}</div>
+                )}
+                {detectedText.length > 0 && (
+                  <div style={{ marginTop: 4 }}>📝 Text found: {detectedText.slice(0, 6).join(" · ")}</div>
+                )}
               </div>
             )}
 

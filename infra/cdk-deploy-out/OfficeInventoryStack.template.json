@@ -311,7 +311,10 @@
        ]
       },
       {
-       "Action": "rekognition:DetectLabels",
+       "Action": [
+        "rekognition:DetectLabels",
+        "rekognition:DetectText"
+       ],
        "Effect": "Allow",
        "Resource": "*"
       }
@@ -334,7 +337,7 @@
    "Properties": {
     "Code": {
      "S3Bucket": "cdk-hnb659fds-assets-083868342691-us-east-1",
-     "S3Key": "9411b213ef7fc9cec76da02d05ed80e6003fb7e33a962539dc53e95c977759c9.zip"
+     "S3Key": "f352091787991c12d73cb3b93833355cfda4a5340a3d0b6ff52bd03f5324c753.zip"
     },
     "Environment": {
      "Variables": {
@@ -362,7 +365,7 @@
    ],
    "Metadata": {
     "aws:cdk:path": "OfficeInventoryStack/ApiHandler/Resource",
-    "aws:asset:path": "asset.9411b213ef7fc9cec76da02d05ed80e6003fb7e33a962539dc53e95c977759c9",
+    "aws:asset:path": "asset.f352091787991c12d73cb3b93833355cfda4a5340a3d0b6ff52bd03f5324c753",
     "aws:asset:is-bundled": false,
     "aws:asset:property": "Code"
    }
@@ -1536,7 +1539,7 @@
      "cdk-hnb659fds-assets-083868342691-us-east-1"
     ],
     "SourceObjectKeys": [
-     "27ef031d8970ed0aa6b872aad0266aff4f8378944631d62ca4c1c79eaed187ef.zip"
+     "7d6165223d1399925e4a8b494a7bb3e3c62c3a8e339e202ef880de29ad728e05.zip"
     ],
     "DestinationBucketName": {
      "Ref": "WebsiteBucket75C24D94"

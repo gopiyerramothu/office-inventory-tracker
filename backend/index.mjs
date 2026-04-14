@@ -10,6 +10,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   RekognitionClient,
   DetectLabelsCommand,
+  DetectTextCommand,
 } from "@aws-sdk/client-rekognition";
 import { randomUUID } from "crypto";
 
@@ -88,21 +89,85 @@ export const handler = async (event) => {
       };
     }
 
-    // POST /detect — detect equipment from image using Rekognition
+    // POST /detect — detect equipment + read text from image
     if (httpMethod === "POST" && resource === "/detect") {
       const { key } = JSON.parse(body);
-      const result = await rekognition.send(
-        new DetectLabelsCommand({
-          Image: { S3Object: { Bucket: BUCKET, Name: key } },
-          MaxLabels: 10,
-          MinConfidence: 70,
-        })
-      );
-      const labels = (result.Labels || []).map((l) => ({
+      const s3Image = { S3Object: { Bucket: BUCKET, Name: key } };
+
+      // Run label detection and text detection in parallel
+      const [labelResult, textResult] = await Promise.all([
+        rekognition.send(
+          new DetectLabelsCommand({
+            Image: s3Image,
+            MaxLabels: 15,
+            MinConfidence: 60,
+          })
+        ),
+        rekognition.send(
+          new DetectTextCommand({
+            Image: s3Image,
+          })
+        ),
+      ]);
+
+      const labels = (labelResult.Labels || []).map((l) => ({
         name: l.Name,
         confidence: Math.round(l.Confidence),
       }));
-      return { statusCode: 200, headers, body: JSON.stringify({ labels }) };
+
+      // Extract all detected text lines
+      const textLines = (textResult.TextDetections || [])
+        .filter((t) => t.Type === "LINE" && t.Confidence > 60)
+        .map((t) => t.DetectedText);
+
+      // Try to intelligently parse fields from detected text
+      const allText = textLines.join(" ");
+      const parsed = {};
+
+      // Look for serial number patterns (SN:, S/N, serial, or alphanumeric codes)
+      const snMatch = allText.match(
+        /(?:S\/?N|Serial|SN)[:\s#-]*([A-Z0-9][\w-]{4,})/i
+      );
+      if (snMatch) parsed.serialNumber = snMatch[1];
+
+      // Look for model number patterns
+      const modelMatch = allText.match(
+        /(?:Model|MDL|MOD)[:\s#-]*([A-Z0-9][\w-]{2,})/i
+      );
+      if (modelMatch) parsed.model = modelMatch[1];
+
+      // Known brand names to look for
+      const brands = [
+        "Dell", "HP", "Lenovo", "Apple", "Samsung", "LG", "Asus",
+        "Acer", "Microsoft", "Logitech", "Cisco", "Netgear",
+        "Brother", "Canon", "Epson", "Sony", "Philips", "BenQ",
+        "ViewSonic", "Zebra", "Honeywell", "Ingenico", "Verifone",
+      ];
+      for (const b of brands) {
+        if (allText.toLowerCase().includes(b.toLowerCase())) {
+          parsed.brand = b;
+          break;
+        }
+      }
+
+      // Try to find a product name from labels
+      const equipmentLabels = labels.filter(
+        (l) =>
+          ![
+            "Text", "Label", "Symbol", "Logo", "Number", "Word",
+            "Page", "Paper", "Document",
+          ].includes(l.name)
+      );
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          labels: equipmentLabels,
+          textLines,
+          parsed,
+        }),
+      };
     }
 
     return {

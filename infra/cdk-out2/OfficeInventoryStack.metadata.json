@@ -1,0 +1,366 @@
+{
+  "/OfficeInventoryStack/Custom::S3AutoDeleteObjectsCustomResourceProvider": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-customResourceProvider",
+      "data": true
+    }
+  ],
+  "/OfficeInventoryStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-singleton",
+      "data": true
+    },
+    {
+      "type": "aws:cdk:is-custom-resource-handler-runtime-family",
+      "data": 2
+    }
+  ],
+  "/OfficeInventoryStack/PortalUrl": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PortalUrl"
+    }
+  ],
+  "/OfficeInventoryStack/ApiUrl": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiUrl"
+    }
+  ],
+  "/OfficeInventoryStack/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    }
+  ],
+  "/OfficeInventoryStack/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryTable/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryTableFD135387"
+    }
+  ],
+  "/OfficeInventoryStack/ImageBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ImageBucket97210811"
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketAutoDeleteObjects"
+      }
+    }
+  ],
+  "/OfficeInventoryStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+    }
+  ],
+  "/OfficeInventoryStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F"
+    }
+  ],
+  "/OfficeInventoryStack/ApiHandler/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiHandler5E7490E8"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApi49B09E7D"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Account": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiAccount7172A26A"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Endpoint": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiEndpoint825CF96A"
+    }
+  ],
+  "/OfficeInventoryStack/WebsiteBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WebsiteBucket75C24D94"
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketAutoDeleteObjects"
+      }
+    }
+  ],
+  "/OfficeInventoryStack/Distribution/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "Distribution830FAC52"
+    }
+  ],
+  "/OfficeInventoryStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536"
+    }
+  ],
+  "/OfficeInventoryStack/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    }
+  ],
+  "/OfficeInventoryStack/ImageBucket/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ImageBucketPolicy9E7B0384"
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketPolicyStatements"
+      }
+    }
+  ],
+  "/OfficeInventoryStack/ImageBucket/AutoDeleteObjectsCustomResource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ImageBucketAutoDeleteObjectsCustomResource99A1E17B"
+    }
+  ],
+  "/OfficeInventoryStack/ApiHandler/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiHandlerServiceRole592E70E9"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/CloudWatchRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiCloudWatchRoleA9D47253"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Deployment/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiDeployment382203FBb374cc17d38c6ffae5cb2a2b6ef4eec0"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/DeploymentStage.prod/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiDeploymentStageprod5D1FE13B"
+    }
+  ],
+  "/OfficeInventoryStack/WebsiteBucket/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WebsiteBucketPolicyE10E3262"
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketPolicyStatements"
+      }
+    }
+  ],
+  "/OfficeInventoryStack/WebsiteBucket/AutoDeleteObjectsCustomResource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WebsiteBucketAutoDeleteObjectsCustomResource8750E461"
+    }
+  ],
+  "/OfficeInventoryStack/DeployWebsite/AwsCliLayer/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DeployWebsiteAwsCliLayer17DBC421"
+    }
+  ],
+  "/OfficeInventoryStack/DeployWebsite/CustomResource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DeployWebsiteCustomResourceD116527B"
+    }
+  ],
+  "/OfficeInventoryStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265"
+    }
+  ],
+  "/OfficeInventoryStack/ApiHandler/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ApiHandlerServiceRoleDefaultPolicy10321D87"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiOPTIONS9CCF6FDB"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsDC5C3203"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/upload-url/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiuploadurlD6D9027D"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/detect/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApidetect0E3BECD0"
+    }
+  ],
+  "/OfficeInventoryStack/Distribution/Origin1/S3OriginAccessControl/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DistributionOrigin1S3OriginAccessControlEB606076"
+    }
+  ],
+  "/OfficeInventoryStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsOPTIONSD745A98A"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/GET/ApiPermission.OfficeInventoryStackInventoryApi78803E23.GET..items": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsGETApiPermissionOfficeInventoryStackInventoryApi78803E23GETitemsB7BEB93A"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/GET/ApiPermission.Test.OfficeInventoryStackInventoryApi78803E23.GET..items": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsGETApiPermissionTestOfficeInventoryStackInventoryApi78803E23GETitems3464DA40"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/GET/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsGET5649A7DA"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/POST/ApiPermission.OfficeInventoryStackInventoryApi78803E23.POST..items": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsPOSTApiPermissionOfficeInventoryStackInventoryApi78803E23POSTitems3CD4AF41"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/POST/ApiPermission.Test.OfficeInventoryStackInventoryApi78803E23.POST..items": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsPOSTApiPermissionTestOfficeInventoryStackInventoryApi78803E23POSTitemsBFD35A82"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsPOSTC6FA4A44"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/{id}/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsidA2A45EF1"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/upload-url/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiuploadurlOPTIONSE903BE07"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/upload-url/GET/ApiPermission.OfficeInventoryStackInventoryApi78803E23.GET..upload-url": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiuploadurlGETApiPermissionOfficeInventoryStackInventoryApi78803E23GETuploadurlD541FFBD"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/upload-url/GET/ApiPermission.Test.OfficeInventoryStackInventoryApi78803E23.GET..upload-url": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiuploadurlGETApiPermissionTestOfficeInventoryStackInventoryApi78803E23GETuploadurl4047C9D3"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/upload-url/GET/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiuploadurlGET4974AB0F"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/detect/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApidetectOPTIONS3DF083A0"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/detect/POST/ApiPermission.OfficeInventoryStackInventoryApi78803E23.POST..detect": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApidetectPOSTApiPermissionOfficeInventoryStackInventoryApi78803E23POSTdetect7E749499"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/detect/POST/ApiPermission.Test.OfficeInventoryStackInventoryApi78803E23.POST..detect": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApidetectPOSTApiPermissionTestOfficeInventoryStackInventoryApi78803E23POSTdetect6F1EDBC0"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/detect/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApidetectPOST9A21BDD5"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/{id}/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsidOPTIONS4587AB67"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/{id}/DELETE/ApiPermission.OfficeInventoryStackInventoryApi78803E23.DELETE..items.{id}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsidDELETEApiPermissionOfficeInventoryStackInventoryApi78803E23DELETEitemsidFF341473"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/{id}/DELETE/ApiPermission.Test.OfficeInventoryStackInventoryApi78803E23.DELETE..items.{id}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsidDELETEApiPermissionTestOfficeInventoryStackInventoryApi78803E23DELETEitemsid2AE37329"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/{id}/DELETE/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsidDELETECAC68FAF"
+    }
+  ]
+}
