@@ -27,7 +27,7 @@ export class InventoryStack extends cdk.Stack {
       autoDeleteObjects: true,
       cors: [
         {
-          allowedMethods: [s3.HttpMethod.PUT, s3.HttpMethod.GET],
+          allowedMethods: [s3.HttpMethods.PUT, s3.HttpMethods.GET],
           allowedOrigins: ["*"],
           allowedHeaders: ["*"],
         },
