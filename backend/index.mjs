@@ -43,16 +43,15 @@ export const handler = async (event) => {
       const data = JSON.parse(body);
       const item = {
         id: randomUUID(),
-        name: data.name,
-        category: data.category || "General",
-        assignedTo: data.assignedTo || "",
-        room: data.room || "",
-        status: data.status || "Working",
+        userName: data.userName || "Anonymous",
+        itemName: data.itemName,
+        description: data.description || "",
+        itemType: data.itemType || "Electronics",
         serialNumber: data.serialNumber || "",
-        brand: data.brand || "",
-        addedBy: data.addedBy || "Anonymous",
-        imageUrl: data.imageUrl || null,
+        status: data.status || "Working",
+        location: data.location || "Suite 180",
         notes: data.notes || "",
+        imageUrl: data.imageUrl || null,
         createdAt: new Date().toISOString(),
       };
       await ddb.send(new PutCommand({ TableName: TABLE, Item: item }));
