@@ -1,24 +1,47 @@
 import React, { useState, useEffect } from "react";
+import { fetchItems, addItem, deleteItem, getUploadUrl, uploadImage, detectLabels } from "./api.js";
 import {
-  fetchItems,
-  addItem,
-  deleteItem,
-  getUploadUrl,
-  uploadImage,
-  detectLabels,
-} from "./api.js";
+  IconMonitor, IconBriefcase, IconTv, IconMic, IconBox,
+  IconSearch, IconCamera, IconTrash, IconCheck, IconX,
+  IconRefresh, IconLogout, IconClipboard, IconCheckCircle, IconXCircle,
+} from "./icons.jsx";
 
-const ITEM_TYPES = ["Electronics", "Furniture", "Peripherals", "Networking", "Stationery", "Other"];
-const ITEM_TYPE_ICONS = { Electronics: "💻", Furniture: "🪑", Peripherals: "🖱️", Networking: "🌐", Stationery: "📎", Other: "📦" };
+const ITEM_TYPES = [
+  "Office Inventory",
+  "Field Manager Inventory",
+  "TVs",
+  "Podcast Room Inventory",
+  "Other",
+];
+const TYPE_ICON = {
+  "Office Inventory": IconBriefcase,
+  "Field Manager Inventory": IconMonitor,
+  "TVs": IconTv,
+  "Podcast Room Inventory": IconMic,
+  "Other": IconBox,
+};
+
 const LOCATIONS = ["Suite 180", "Suite 300"];
 const STATUSES = ["Working", "Not Working"];
-const STATUS_COLORS = { Working: { bg: "#d1fae5", color: "#065f46" }, "Not Working": { bg: "#fee2e2", color: "#991b1b" } };
-
 const USERS_AUTH = { admin: { password: "admin123", role: "admin" }, user: { password: "user123", role: "user" } };
 
-const inputStyle = { width: "100%", padding: "10px 14px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box" };
-const labelStyle = { fontSize: 12, color: "#666", display: "block", marginBottom: 4 };
-const reqStar = { color: "#ef4444", marginLeft: 2 };
+/* ─── Shared styles ─── */
+const C = {
+  primary: "#2c3e50",
+  accent: "#3498db",
+  bg: "#f5f6f8",
+  card: "#ffffff",
+  border: "#e1e4e8",
+  textPrimary: "#2c3e50",
+  textSecondary: "#7f8c8d",
+  success: "#27ae60",
+  danger: "#e74c3c",
+  tagBg: "#eef2f7",
+  tagText: "#2c3e50",
+};
+
+const inputStyle = { width: "100%", padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 14, boxSizing: "border-box", color: C.textPrimary, background: C.card };
+const labelStyle = { fontSize: 12, color: C.textSecondary, display: "block", marginBottom: 4, fontWeight: 500 };
 
 export default function App() {
   const [auth, setAuth] = useState(() => {
@@ -45,18 +68,18 @@ function LoginScreen({ onLogin }) {
     } else setError("Invalid username or password");
   }
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #7c3aed 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-      <div style={{ background: "#fff", borderRadius: 16, padding: 40, width: 380, maxWidth: "90vw", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", textAlign: "center" }}>
-        <img src="/favicon.jpg" alt="BCE Logo" style={{ width: 64, height: 64, borderRadius: 14, marginBottom: 16 }} />
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 4px" }}>BCE Inventory</h1>
-        <p style={{ color: "#888", fontSize: 13, marginBottom: 24 }}>Sign in to manage office equipment</p>
+    <div style={{ minHeight: "100vh", background: C.primary, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <div style={{ background: C.card, borderRadius: 12, padding: 40, width: 380, maxWidth: "90vw", boxShadow: "0 8px 30px rgba(0,0,0,0.2)", textAlign: "center" }}>
+        <img src="/favicon.jpg" alt="BCE Logo" style={{ width: 56, height: 56, borderRadius: 10, marginBottom: 16 }} />
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", color: C.textPrimary }}>BCE Inventory</h1>
+        <p style={{ color: C.textSecondary, fontSize: 13, marginBottom: 24 }}>Sign in to manage office equipment</p>
         <form onSubmit={handleLogin}>
           <input style={{ ...inputStyle, marginBottom: 10 }} placeholder="Username" value={username} onChange={(e) => { setUsername(e.target.value); setError(""); }} aria-label="Username" autoFocus />
           <input type="password" style={{ ...inputStyle, marginBottom: 16 }} placeholder="Password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} aria-label="Password" />
-          {error && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{error}</div>}
-          <button type="submit" style={{ width: "100%", padding: 12, background: "linear-gradient(135deg, #2563eb, #7c3aed)", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Sign In</button>
+          {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+          <button type="submit" style={{ width: "100%", padding: 12, background: C.primary, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Sign In</button>
         </form>
-        <div style={{ marginTop: 20, padding: 12, background: "#f8f9fa", borderRadius: 8, fontSize: 12, color: "#888", textAlign: "left" }}>
+        <div style={{ marginTop: 20, padding: 12, background: C.bg, borderRadius: 6, fontSize: 12, color: C.textSecondary, textAlign: "left" }}>
           <div><span style={{ fontWeight: 600 }}>Admin:</span> admin / admin123</div>
           <div><span style={{ fontWeight: 600 }}>User:</span> user / user123</div>
         </div>
@@ -65,26 +88,31 @@ function LoginScreen({ onLogin }) {
   );
 }
 
+/* ─── Nav ─── */
 function NavBar({ auth, onLogout, children }) {
   return (
-    <nav style={{ background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.15)", position: "relative", zIndex: 1 }}>
+    <nav style={{ background: C.primary, padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 1 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <img src="/favicon.jpg" alt="BCE" style={{ width: 32, height: 32, borderRadius: 8 }} />
+        <img src="/favicon.jpg" alt="BCE" style={{ width: 28, height: 28, borderRadius: 6 }} />
         <div>
-          <div style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>BCE Inventory</div>
-          <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>Logged in as <span style={{ fontWeight: 600, color: "#fff" }}>{auth.username}</span> ({auth.role})</div>
+          <div style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>BCE Inventory</div>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
+            {auth.username} ({auth.role})
+          </div>
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {children}
-        <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Logout</button>
+        <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <IconLogout style={{ width: 14, height: 14 }} /> Logout
+        </button>
       </div>
     </nav>
   );
 }
 
 function Watermark() {
-  return <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", opacity: 0.04, pointerEvents: "none", zIndex: 0 }}><img src="/logo-bg.png" alt="" style={{ width: 600, maxWidth: "90vw" }} /></div>;
+  return <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", opacity: 0.03, pointerEvents: "none", zIndex: 0 }}><img src="/logo-bg.png" alt="" style={{ width: 500, maxWidth: "90vw" }} /></div>;
 }
 
 /* ─── User Panel ─── */
@@ -92,7 +120,7 @@ function UserPanel({ auth, onLogout }) {
   const [userName, setUserName] = useState("");
   const [itemName, setItemName] = useState("");
   const [description, setDescription] = useState("");
-  const [itemType, setItemType] = useState("Electronics");
+  const [itemType, setItemType] = useState("Office Inventory");
   const [serialNumber, setSerialNumber] = useState("");
   const [status, setStatus] = useState("Working");
   const [location, setLocation] = useState("Suite 180");
@@ -105,14 +133,13 @@ function UserPanel({ auth, onLogout }) {
   async function handleAdd(e) {
     e.preventDefault();
     if (!userName.trim() || !itemName.trim() || !description.trim() || !serialNumber.trim()) {
-      alert("Please fill in all required fields");
-      return;
+      alert("Please fill in all required fields"); return;
     }
     setLoading(true);
     try {
       await addItem({ userName, itemName, description, itemType, serialNumber, status, location, notes });
-      setSuccess(`"${itemName}" added to inventory!`);
-      setUserName(""); setItemName(""); setDescription(""); setItemType("Electronics");
+      setSuccess(`"${itemName}" added to inventory`);
+      setUserName(""); setItemName(""); setDescription(""); setItemType("Office Inventory");
       setSerialNumber(""); setStatus("Working"); setLocation("Suite 180"); setNotes(""); setScanInfo(null);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) { alert("Failed: " + err.message); }
@@ -130,96 +157,90 @@ function UserPanel({ auth, onLogout }) {
       const { labels = [], textLines = [], parsed = {} } = result;
       setScanInfo({ labels, textLines });
       if (labels.length > 0 && !itemName) setItemName(labels[0].name);
-      if (parsed.brand) setDescription((prev) => prev || parsed.brand + (parsed.model ? ` ${parsed.model}` : ""));
+      if (parsed.brand) setDescription((p) => p || parsed.brand + (parsed.model ? ` ${parsed.model}` : ""));
       if (parsed.serialNumber && !serialNumber) setSerialNumber(parsed.serialNumber);
-      const ln = labels.map((l) => l.name.toLowerCase());
-      if (ln.some((n) => ["router", "modem", "switch"].includes(n))) setItemType("Networking");
-      else if (ln.some((n) => ["keyboard", "mouse", "headset", "webcam"].includes(n))) setItemType("Peripherals");
-      else if (ln.some((n) => ["chair", "desk", "table", "shelf"].includes(n))) setItemType("Furniture");
     } catch (err) { alert("Scan failed: " + err.message); }
     setScanning(false);
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f0f2f5", position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, position: "relative" }}>
       <Watermark />
       <NavBar auth={auth} onLogout={onLogout} />
-      <div style={{ maxWidth: 600, margin: "30px auto", padding: "0 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative", zIndex: 1 }}>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #e5e7eb" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Log Equipment</h2>
-          <p style={{ color: "#888", fontSize: 13, marginBottom: 20 }}>Scan a photo or fill in the details. All fields except Notes are required.</p>
+      <div style={{ maxWidth: 580, margin: "30px auto", padding: "0 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative", zIndex: 1 }}>
+        <div style={{ background: C.card, borderRadius: 10, padding: 28, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: `1px solid ${C.border}` }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4, color: C.textPrimary }}>Log Equipment</h2>
+          <p style={{ color: C.textSecondary, fontSize: 13, marginBottom: 20 }}>Scan a photo or fill in the details. All fields except Notes are required.</p>
 
-          {success && <div style={{ background: "#d1fae5", color: "#065f46", padding: 12, borderRadius: 10, marginBottom: 16, fontSize: 14, fontWeight: 600 }}>✓ {success}</div>}
+          {success && (
+            <div style={{ background: "#eafaf1", color: C.success, padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              <IconCheckCircle style={{ width: 16, height: 16 }} /> {success}
+            </div>
+          )}
 
           <form onSubmit={handleAdd}>
-            {/* Your Name */}
             <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Your Name<span style={reqStar}>*</span></label>
+              <label style={labelStyle}>Your Name <span style={{ color: C.danger }}>*</span></label>
               <input style={inputStyle} placeholder="Who is entering this?" value={userName} onChange={(e) => setUserName(e.target.value)} required aria-label="Your name" />
             </div>
 
-            {/* Item Name + Item Type */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
-                <label style={labelStyle}>Item Name<span style={reqStar}>*</span></label>
+                <label style={labelStyle}>Item Name <span style={{ color: C.danger }}>*</span></label>
                 <input style={inputStyle} placeholder="e.g. Monitor, Card Reader" value={itemName} onChange={(e) => setItemName(e.target.value)} required aria-label="Item name" />
               </div>
               <div>
-                <label style={labelStyle}>Item Type<span style={reqStar}>*</span></label>
-                <select value={itemType} onChange={(e) => setItemType(e.target.value)} aria-label="Item type" style={{ ...inputStyle, background: "#fff" }}>
-                  {ITEM_TYPES.map((t) => <option key={t} value={t}>{ITEM_TYPE_ICONS[t]} {t}</option>)}
+                <label style={labelStyle}>Item Type <span style={{ color: C.danger }}>*</span></label>
+                <select value={itemType} onChange={(e) => setItemType(e.target.value)} aria-label="Item type" style={inputStyle}>
+                  {ITEM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
             </div>
 
-            {/* Description */}
             <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Item Description<span style={reqStar}>*</span></label>
-              <input style={inputStyle} placeholder="Brand, model, color, size, etc." value={description} onChange={(e) => setDescription(e.target.value)} required aria-label="Item description" />
+              <label style={labelStyle}>Item Description <span style={{ color: C.danger }}>*</span></label>
+              <input style={inputStyle} placeholder="Brand, model, color, size, etc." value={description} onChange={(e) => setDescription(e.target.value)} required aria-label="Description" />
             </div>
 
-            {/* Serial + Status */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
-                <label style={labelStyle}>Serial Number<span style={reqStar}>*</span></label>
+                <label style={labelStyle}>Serial Number <span style={{ color: C.danger }}>*</span></label>
                 <input style={inputStyle} placeholder="SN-12345 or asset tag" value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} required aria-label="Serial number" />
               </div>
               <div>
-                <label style={labelStyle}>Working Status<span style={reqStar}>*</span></label>
-                <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status" style={{ ...inputStyle, background: "#fff" }}>
+                <label style={labelStyle}>Working Status <span style={{ color: C.danger }}>*</span></label>
+                <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status" style={inputStyle}>
                   {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
 
-            {/* Location */}
             <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Item Location<span style={reqStar}>*</span></label>
-              <select value={location} onChange={(e) => setLocation(e.target.value)} aria-label="Location" style={{ ...inputStyle, background: "#fff" }}>
+              <label style={labelStyle}>Item Location <span style={{ color: C.danger }}>*</span></label>
+              <select value={location} onChange={(e) => setLocation(e.target.value)} aria-label="Location" style={inputStyle}>
                 {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
 
-            {/* Notes (optional) */}
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Notes <span style={{ color: "#aaa", fontSize: 11 }}>(optional)</span></label>
+              <label style={labelStyle}>Notes <span style={{ color: C.textSecondary, fontSize: 11 }}>(optional)</span></label>
               <input style={inputStyle} placeholder="Any extra info..." value={notes} onChange={(e) => setNotes(e.target.value)} aria-label="Notes" />
             </div>
 
             {scanInfo && (
-              <div style={{ background: "#fef3c7", padding: 12, borderRadius: 10, marginBottom: 14, fontSize: 13, border: "1px solid #fde68a" }}>
-                {scanInfo.labels.length > 0 && <div>🏷️ Detected: {scanInfo.labels.slice(0, 5).map((l) => `${l.name} (${l.confidence}%)`).join(", ")}</div>}
-                {scanInfo.textLines.length > 0 && <div style={{ marginTop: 4 }}>📝 Text: {scanInfo.textLines.slice(0, 6).join(" · ")}</div>}
+              <div style={{ background: C.bg, padding: 12, borderRadius: 6, marginBottom: 14, fontSize: 13, border: `1px solid ${C.border}` }}>
+                {scanInfo.labels.length > 0 && <div>Detected: {scanInfo.labels.slice(0, 5).map((l) => `${l.name} (${l.confidence}%)`).join(", ")}</div>}
+                {scanInfo.textLines.length > 0 && <div style={{ marginTop: 4, color: C.textSecondary }}>Text: {scanInfo.textLines.slice(0, 6).join(" / ")}</div>}
               </div>
             )}
 
             <div style={{ display: "flex", gap: 10 }}>
-              <label style={{ background: "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }} role="button" tabIndex={0}>
-                {scanning ? "⏳ Scanning..." : "📷 Scan"}
+              <label style={{ background: C.card, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }} role="button" tabIndex={0}>
+                <IconCamera style={{ width: 16, height: 16 }} /> {scanning ? "Scanning..." : "Scan"}
                 <input type="file" accept="image/*" capture="environment" onChange={handleScan} style={{ display: "none" }} aria-label="Take photo" />
               </label>
-              <button type="submit" disabled={loading} style={{ flex: 1, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 24px", fontWeight: 600, fontSize: 14, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
-                {loading ? "Adding..." : "✓ Add to Inventory"}
+              <button type="submit" disabled={loading} style={{ flex: 1, background: C.primary, color: "#fff", border: "none", borderRadius: 6, padding: "10px 20px", fontWeight: 600, fontSize: 14, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <IconCheck style={{ width: 16, height: 16 }} /> {loading ? "Adding..." : "Add to Inventory"}
               </button>
             </div>
           </form>
@@ -239,89 +260,89 @@ function AdminDashboard({ auth, onLogout }) {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { loadItems(); }, []);
-  async function loadItems() {
-    setRefreshing(true);
-    try { const d = await fetchItems(); setItems(Array.isArray(d) ? d : []); } catch {}
-    setRefreshing(false);
-  }
-  async function handleDelete(id) {
-    if (!confirm("Remove this item?")) return;
-    await deleteItem(id); await loadItems();
-  }
+  async function loadItems() { setRefreshing(true); try { const d = await fetchItems(); setItems(Array.isArray(d) ? d : []); } catch {} setRefreshing(false); }
+  async function handleDelete(id) { if (!confirm("Remove this item?")) return; await deleteItem(id); await loadItems(); }
 
   const filtered = items
-    .filter((i) => filterType === "All" || i.itemType === filterType)
+    .filter((i) => filterType === "All" || (i.itemType || i.category) === filterType)
     .filter((i) => filterStatus === "All" || i.status === filterStatus)
-    .filter((i) => filterLocation === "All" || i.location === filterLocation)
-    .filter((i) => !search || [i.itemName, i.userName, i.description, i.serialNumber, i.notes, i.location].filter(Boolean).some((v) => v.toLowerCase().includes(search.toLowerCase())));
+    .filter((i) => filterLocation === "All" || (i.location || i.room) === filterLocation)
+    .filter((i) => !search || [i.itemName, i.name, i.userName, i.addedBy, i.description, i.serialNumber, i.notes].filter(Boolean).some((v) => v.toLowerCase().includes(search.toLowerCase())));
 
-  const typeCounts = items.reduce((a, i) => { a[i.itemType || "Other"] = (a[i.itemType || "Other"] || 0) + 1; return a; }, {});
+  const typeCounts = items.reduce((a, i) => { const k = i.itemType || i.category || "Other"; a[k] = (a[k] || 0) + 1; return a; }, {});
   const statusCounts = items.reduce((a, i) => { a[i.status || "Working"] = (a[i.status || "Working"] || 0) + 1; return a; }, {});
+  const locCounts = items.reduce((a, i) => { const k = i.location || i.room || "Other"; a[k] = (a[k] || 0) + 1; return a; }, {});
 
-  const th = { padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#666", textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "2px solid #e5e7eb", background: "#f8f9fa", whiteSpace: "nowrap" };
-  const td = { padding: "10px 12px", fontSize: 13, borderBottom: "1px solid #f0f0f0", color: "#1a1a1a" };
+  const th = { padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `2px solid ${C.border}`, background: C.bg, whiteSpace: "nowrap" };
+  const td = { padding: "10px 12px", fontSize: 13, borderBottom: `1px solid ${C.bg}`, color: C.textPrimary };
+
+  function FilterChip({ label, active, onClick }) {
+    return (
+      <button onClick={onClick} style={{ background: active ? C.primary : C.card, color: active ? "#fff" : C.textPrimary, border: `1px solid ${active ? C.primary : C.border}`, borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+        {label}
+      </button>
+    );
+  }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f0f2f5", position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, position: "relative" }}>
       <Watermark />
       <NavBar auth={auth} onLogout={onLogout}>
-        <button onClick={loadItems} disabled={refreshing} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{refreshing ? "⏳" : "🔄"} Refresh</button>
+        <button onClick={loadItems} disabled={refreshing} style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <IconRefresh style={{ width: 14, height: 14 }} /> Refresh
+        </button>
       </NavBar>
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative", zIndex: 1 }}>
+
         {/* Stats */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-          <div style={{ background: "linear-gradient(135deg, #2563eb, #1d4ed8)", borderRadius: 12, padding: "12px 20px", color: "#fff", textAlign: "center", minWidth: 100 }}>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
-            <div style={{ fontSize: 11, opacity: 0.85 }}>Total</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ background: C.primary, borderRadius: 8, padding: "10px 18px", color: "#fff", textAlign: "center", minWidth: 80 }}>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>{items.length}</div>
+            <div style={{ fontSize: 10, opacity: 0.8 }}>Total</div>
           </div>
-          {Object.entries(typeCounts).map(([t, c]) => (
-            <div key={t} onClick={() => setFilterType(filterType === t ? "All" : t)} style={{ background: filterType === t ? "#e0e7ff" : "#fff", borderRadius: 12, padding: "12px 16px", textAlign: "center", cursor: "pointer", border: filterType === t ? "2px solid #2563eb" : "1px solid #e5e7eb", minWidth: 80 }}>
-              <div style={{ fontSize: 16 }}>{ITEM_TYPE_ICONS[t] || "📦"}</div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>{c}</div>
-              <div style={{ fontSize: 10, color: "#666" }}>{t}</div>
-            </div>
+
+          <div style={{ width: 1, height: 36, background: C.border }} />
+
+          {/* Type filters */}
+          {Object.entries(typeCounts).map(([t, c]) => {
+            const Icon = TYPE_ICON[t] || IconBox;
+            return <FilterChip key={t} label={<><Icon style={{ width: 14, height: 14 }} /> {t} ({c})</>} active={filterType === t} onClick={() => setFilterType(filterType === t ? "All" : t)} />;
+          })}
+
+          <div style={{ width: 1, height: 36, background: C.border }} />
+
+          {/* Status filters */}
+          {Object.entries(statusCounts).map(([s, c]) => (
+            <FilterChip key={s} label={<>{s === "Working" ? <IconCheckCircle style={{ width: 14, height: 14, color: C.success }} /> : <IconXCircle style={{ width: 14, height: 14, color: C.danger }} />} {s} ({c})</>} active={filterStatus === s} onClick={() => setFilterStatus(filterStatus === s ? "All" : s)} />
           ))}
-          <div style={{ borderLeft: "1px solid #ddd", margin: "0 4px" }} />
-          {Object.entries(statusCounts).map(([s, c]) => {
-            const sc = STATUS_COLORS[s] || STATUS_COLORS.Working;
-            return (
-              <div key={s} onClick={() => setFilterStatus(filterStatus === s ? "All" : s)} style={{ background: filterStatus === s ? sc.bg : "#fff", borderRadius: 12, padding: "12px 16px", textAlign: "center", cursor: "pointer", border: filterStatus === s ? `2px solid ${sc.color}` : "1px solid #e5e7eb", minWidth: 80 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: sc.color }}>{c}</div>
-                <div style={{ fontSize: 10, color: "#666" }}>{s}</div>
-              </div>
-            );
-          })}
-          <div style={{ borderLeft: "1px solid #ddd", margin: "0 4px" }} />
-          {LOCATIONS.map((loc) => {
-            const c = items.filter((i) => i.location === loc).length;
-            return (
-              <div key={loc} onClick={() => setFilterLocation(filterLocation === loc ? "All" : loc)} style={{ background: filterLocation === loc ? "#e0e7ff" : "#fff", borderRadius: 12, padding: "12px 16px", textAlign: "center", cursor: "pointer", border: filterLocation === loc ? "2px solid #2563eb" : "1px solid #e5e7eb", minWidth: 80 }}>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{c}</div>
-                <div style={{ fontSize: 10, color: "#666" }}>{loc}</div>
-              </div>
-            );
-          })}
+
+          <div style={{ width: 1, height: 36, background: C.border }} />
+
+          {/* Location filters */}
+          {Object.entries(locCounts).map(([l, c]) => (
+            <FilterChip key={l} label={`${l} (${c})`} active={filterLocation === l} onClick={() => setFilterLocation(filterLocation === l ? "All" : l)} />
+          ))}
         </div>
 
-        {/* Search + active filters */}
+        {/* Search */}
         <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
-            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 16, color: "#999" }}>🔍</span>
-            <input style={{ width: "100%", padding: "10px 14px 10px 36px", border: "1px solid #ddd", borderRadius: 10, fontSize: 14, background: "#fff", boxSizing: "border-box" }} placeholder="Search name, serial, description..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
+            <IconSearch style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: C.textSecondary }} />
+            <input style={{ ...inputStyle, paddingLeft: 36, borderRadius: 6 }} placeholder="Search name, serial, description..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
           </div>
-          {filterType !== "All" && <button onClick={() => setFilterType("All")} style={{ background: "#e0e7ff", color: "#2563eb", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>✕ {filterType}</button>}
-          {filterStatus !== "All" && <button onClick={() => setFilterStatus("All")} style={{ background: STATUS_COLORS[filterStatus]?.bg, color: STATUS_COLORS[filterStatus]?.color, border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>✕ {filterStatus}</button>}
-          {filterLocation !== "All" && <button onClick={() => setFilterLocation("All")} style={{ background: "#e0e7ff", color: "#2563eb", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>✕ {filterLocation}</button>}
-          <div style={{ fontSize: 13, color: "#999" }}>{filtered.length} item{filtered.length !== 1 ? "s" : ""}</div>
+          {filterType !== "All" && <button onClick={() => setFilterType("All")} style={{ background: C.bg, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><IconX style={{ width: 12, height: 12 }} /> {filterType}</button>}
+          {filterStatus !== "All" && <button onClick={() => setFilterStatus("All")} style={{ background: C.bg, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><IconX style={{ width: 12, height: 12 }} /> {filterStatus}</button>}
+          {filterLocation !== "All" && <button onClick={() => setFilterLocation("All")} style={{ background: C.bg, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><IconX style={{ width: 12, height: 12 }} /> {filterLocation}</button>}
+          <span style={{ fontSize: 13, color: C.textSecondary }}>{filtered.length} item{filtered.length !== 1 ? "s" : ""}</span>
         </div>
 
         {/* Table */}
-        <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+        <div style={{ background: C.card, borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden" }}>
           {filtered.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 60, color: "#999" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: "#666" }}>{items.length === 0 ? "No equipment logged yet" : "No items match your filters"}</div>
+            <div style={{ textAlign: "center", padding: 60, color: C.textSecondary }}>
+              <IconClipboard style={{ width: 40, height: 40, marginBottom: 12, opacity: 0.4 }} />
+              <div style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{items.length === 0 ? "No equipment logged yet" : "No items match your filters"}</div>
             </div>
           ) : (
             <div style={{ overflowX: "auto" }}>
@@ -342,24 +363,30 @@ function AdminDashboard({ auth, onLogout }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((item, idx) => {
-                    const sc = STATUS_COLORS[item.status] || STATUS_COLORS.Working;
-                    return (
-                      <tr key={item.id} style={{ background: idx % 2 === 0 ? "#fff" : "#fafbfc" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#f0f4ff")} onMouseLeave={(e) => (e.currentTarget.style.background = idx % 2 === 0 ? "#fff" : "#fafbfc")}>
-                        <td style={{ ...td, color: "#999", fontSize: 11 }}>{idx + 1}</td>
-                        <td style={td}>{item.userName || item.addedBy || "—"}</td>
-                        <td style={{ ...td, fontWeight: 600 }}>{item.itemName || item.name || "—"}</td>
-                        <td style={{ ...td, fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.description || "—"}</td>
-                        <td style={td}><span style={{ background: "#e0e7ff", color: "#3730a3", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{ITEM_TYPE_ICONS[item.itemType || item.category] || "📦"} {item.itemType || item.category || "—"}</span></td>
-                        <td style={{ ...td, fontSize: 12, fontFamily: "monospace" }}>{item.serialNumber || "—"}</td>
-                        <td style={td}><span style={{ background: sc.bg, color: sc.color, padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{item.status || "Working"}</span></td>
-                        <td style={{ ...td, fontSize: 12 }}>{item.location || item.room || "—"}</td>
-                        <td style={{ ...td, fontSize: 12, color: "#666" }}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—"}</td>
-                        <td style={{ ...td, fontSize: 12, color: "#888", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.notes || "—"}</td>
-                        <td style={{ ...td, textAlign: "center" }}><button onClick={() => handleDelete(item.id)} aria-label={`Delete ${item.itemName || item.name}`} style={{ background: "none", border: "1px solid #fecaca", color: "#ef4444", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>🗑️</button></td>
-                      </tr>
-                    );
-                  })}
+                  {filtered.map((item, idx) => (
+                    <tr key={item.id} style={{ background: idx % 2 === 0 ? C.card : C.bg }}>
+                      <td style={{ ...td, color: C.textSecondary, fontSize: 11 }}>{idx + 1}</td>
+                      <td style={td}>{item.userName || item.addedBy || "—"}</td>
+                      <td style={{ ...td, fontWeight: 600 }}>{item.itemName || item.name || "—"}</td>
+                      <td style={{ ...td, fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.description || "—"}</td>
+                      <td style={td}><span style={{ background: C.tagBg, color: C.tagText, padding: "2px 8px", borderRadius: 4, fontSize: 11 }}>{item.itemType || item.category || "—"}</span></td>
+                      <td style={{ ...td, fontSize: 12, fontFamily: "monospace" }}>{item.serialNumber || "—"}</td>
+                      <td style={td}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, background: item.status === "Not Working" ? "#fdeaea" : "#eafaf1", color: item.status === "Not Working" ? C.danger : C.success }}>
+                          {item.status === "Not Working" ? <IconXCircle style={{ width: 12, height: 12 }} /> : <IconCheckCircle style={{ width: 12, height: 12 }} />}
+                          {item.status || "Working"}
+                        </span>
+                      </td>
+                      <td style={{ ...td, fontSize: 12 }}>{item.location || item.room || "—"}</td>
+                      <td style={{ ...td, fontSize: 12, color: C.textSecondary }}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—"}</td>
+                      <td style={{ ...td, fontSize: 12, color: C.textSecondary, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.notes || "—"}</td>
+                      <td style={{ ...td, textAlign: "center" }}>
+                        <button onClick={() => handleDelete(item.id)} aria-label={`Delete ${item.itemName || item.name}`} style={{ background: "none", border: `1px solid #fad4d4`, color: C.danger, borderRadius: 4, padding: "4px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+                          <IconTrash style={{ width: 12, height: 12 }} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
