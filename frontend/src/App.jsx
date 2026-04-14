@@ -110,7 +110,21 @@ export default function App() {
   }, {});
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
+    <div style={{ minHeight: "100vh", background: "#f0f2f5", position: "relative" }}>
+      {/* Background watermark */}
+      <div
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          opacity: 0.04,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      >
+        <img src="/logo-bg.png" alt="" style={{ width: 600, maxWidth: "90vw" }} />
+      </div>
       {/* Top nav */}
       <nav
         style={{
@@ -120,16 +134,18 @@ export default function App() {
           justifyContent: "space-between",
           alignItems: "center",
           boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 28 }}>📦</span>
+          <img src="/favicon.jpg" alt="BCE Logo" style={{ width: 36, height: 36, borderRadius: 8 }} />
           <div>
             <div style={{ color: "#fff", fontSize: 20, fontWeight: 700 }}>
-              Office Inventory
+              BCE Inventory
             </div>
             <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>
-              Track &amp; manage office equipment
+              Biz Cloud Experts — Office Equipment Tracker
             </div>
           </div>
         </div>
@@ -161,6 +177,8 @@ export default function App() {
           padding: "20px 16px",
           fontFamily:
             "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {/* Stats cards */}
