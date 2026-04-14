@@ -50,3 +50,7 @@ export function IconCheckCircle(props) {
 export function IconXCircle(props) {
   return <svg {...s} {...props} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" /></svg>;
 }
+
+export function IconDownload(props) {
+  return <svg {...s} {...props} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>;
+}

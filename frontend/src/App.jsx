@@ -5,17 +5,19 @@ import {
   IconSearch, IconCamera, IconTrash, IconCheck, IconX,
   IconRefresh, IconLogout, IconClipboard, IconCheckCircle, IconXCircle,
 } from "./icons.jsx";
+import { IconDownload } from "./icons.jsx";
+import * as XLSX from "xlsx";
 
 const ITEM_TYPES = [
   "Office Inventory",
-  "Field Manager Inventory",
+  "FieldsManager Inventory",
   "TVs",
   "Podcast Room Inventory",
   "Other",
 ];
 const TYPE_ICON = {
   "Office Inventory": IconBriefcase,
-  "Field Manager Inventory": IconMonitor,
+  "FieldsManager Inventory": IconMonitor,
   "TVs": IconTv,
   "Podcast Room Inventory": IconMic,
   "Other": IconBox,
@@ -263,6 +265,25 @@ function AdminDashboard({ auth, onLogout }) {
   async function loadItems() { setRefreshing(true); try { const d = await fetchItems(); setItems(Array.isArray(d) ? d : []); } catch {} setRefreshing(false); }
   async function handleDelete(id) { if (!confirm("Remove this item?")) return; await deleteItem(id); await loadItems(); }
 
+  function exportExcel() {
+    const rows = filtered.map((item, idx) => ({
+      "#": idx + 1,
+      "Entered By": item.userName || item.addedBy || "",
+      "Item Name": item.itemName || item.name || "",
+      "Description": item.description || "",
+      "Type": item.itemType || item.category || "",
+      "Serial #": item.serialNumber || "",
+      "Status": item.status || "Working",
+      "Location": item.location || item.room || "",
+      "Date": item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "",
+      "Notes": item.notes || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+    XLSX.writeFile(wb, `BCE_Inventory_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
   const filtered = items
     .filter((i) => filterType === "All" || (i.itemType || i.category) === filterType)
     .filter((i) => filterStatus === "All" || i.status === filterStatus)
@@ -295,7 +316,7 @@ function AdminDashboard({ auth, onLogout }) {
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative", zIndex: 1 }}>
 
-        {/* Stats */}
+        {/* Filters */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ background: C.primary, borderRadius: 8, padding: "10px 18px", color: "#fff", textAlign: "center", minWidth: 80 }}>
             <div style={{ fontSize: 22, fontWeight: 800 }}>{items.length}</div>
@@ -304,25 +325,35 @@ function AdminDashboard({ auth, onLogout }) {
 
           <div style={{ width: 1, height: 36, background: C.border }} />
 
-          {/* Type filters */}
-          {Object.entries(typeCounts).map(([t, c]) => {
+          {/* Type filters — always show all types */}
+          {ITEM_TYPES.map((t) => {
             const Icon = TYPE_ICON[t] || IconBox;
+            const c = items.filter((i) => (i.itemType || i.category) === t).length;
             return <FilterChip key={t} label={<><Icon style={{ width: 14, height: 14 }} /> {t} ({c})</>} active={filterType === t} onClick={() => setFilterType(filterType === t ? "All" : t)} />;
           })}
 
           <div style={{ width: 1, height: 36, background: C.border }} />
 
           {/* Status filters */}
-          {Object.entries(statusCounts).map(([s, c]) => (
-            <FilterChip key={s} label={<>{s === "Working" ? <IconCheckCircle style={{ width: 14, height: 14, color: C.success }} /> : <IconXCircle style={{ width: 14, height: 14, color: C.danger }} />} {s} ({c})</>} active={filterStatus === s} onClick={() => setFilterStatus(filterStatus === s ? "All" : s)} />
-          ))}
+          {STATUSES.map((s) => {
+            const c = items.filter((i) => (i.status || "Working") === s).length;
+            return <FilterChip key={s} label={<>{s === "Working" ? <IconCheckCircle style={{ width: 14, height: 14, color: C.success }} /> : <IconXCircle style={{ width: 14, height: 14, color: C.danger }} />} {s} ({c})</>} active={filterStatus === s} onClick={() => setFilterStatus(filterStatus === s ? "All" : s)} />;
+          })}
 
           <div style={{ width: 1, height: 36, background: C.border }} />
 
           {/* Location filters */}
-          {Object.entries(locCounts).map(([l, c]) => (
-            <FilterChip key={l} label={`${l} (${c})`} active={filterLocation === l} onClick={() => setFilterLocation(filterLocation === l ? "All" : l)} />
-          ))}
+          {LOCATIONS.map((l) => {
+            const c = items.filter((i) => (i.location || i.room) === l).length;
+            return <FilterChip key={l} label={`${l} (${c})`} active={filterLocation === l} onClick={() => setFilterLocation(filterLocation === l ? "All" : l)} />;
+          })}
+
+          <div style={{ flex: 1 }} />
+
+          {/* Download Excel */}
+          <button onClick={exportExcel} style={{ background: C.primary, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <IconDownload style={{ width: 14, height: 14 }} /> Download Excel
+          </button>
         </div>
 
         {/* Search */}
