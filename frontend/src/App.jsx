@@ -193,7 +193,6 @@ function Watermark() {
 
 /* ─── User Panel ─── */
 function UserPanel({ auth, onLogout }) {
-  const [userName, setUserName] = useState("");
   const [itemName, setItemName] = useState("");
   const [description, setDescription] = useState("");
   const [itemType, setItemType] = useState("Office Inventory");
@@ -208,14 +207,14 @@ function UserPanel({ auth, onLogout }) {
 
   async function handleAdd(e) {
     e.preventDefault();
-    if (!userName.trim() || !itemName.trim() || !description.trim() || !serialNumber.trim()) {
+    if (!itemName.trim() || !description.trim() || !serialNumber.trim()) {
       alert("Please fill in all required fields"); return;
     }
     setLoading(true);
     try {
-      await addItem({ userName, itemName, description, itemType, serialNumber, status, location, notes });
+      await addItem({ userName: auth.username, itemName, description, itemType, serialNumber, status, location, notes });
       setSuccess(`"${itemName}" added to inventory`);
-      setUserName(""); setItemName(""); setDescription(""); setItemType("Office Inventory");
+      setItemName(""); setDescription(""); setItemType("Office Inventory");
       setSerialNumber(""); setStatus("Working"); setLocation("Suite 180"); setNotes(""); setScanInfo(null);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) { alert("Failed: " + err.message); }
@@ -255,11 +254,6 @@ function UserPanel({ auth, onLogout }) {
           )}
 
           <form onSubmit={handleAdd}>
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Your Name <span style={{ color: C.danger }}>*</span></label>
-              <input style={inputStyle} placeholder="Who is entering this?" value={userName} onChange={(e) => setUserName(e.target.value)} required aria-label="Your name" />
-            </div>
-
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
                 <label style={labelStyle}>Item Name <span style={{ color: C.danger }}>*</span></label>
@@ -449,7 +443,6 @@ function UsersTab() {
 
 /* ─── Add Equipment Tab (for admin) ─── */
 function AddEquipmentTab({ auth }) {
-  const [userName, setUserName] = useState("");
   const [itemName, setItemName] = useState("");
   const [description, setDescription] = useState("");
   const [itemType, setItemType] = useState("Office Inventory");
@@ -500,7 +493,6 @@ function AddEquipmentTab({ auth }) {
         <p style={{ color: C.textSecondary, fontSize: 13, marginBottom: 20 }}>Scan a photo or fill in the details. All fields except Notes are required.</p>
         {success && <div style={{ background: "#eafaf1", color: C.success, padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}><IconCheckCircle style={{ width: 16, height: 16 }} /> {success}</div>}
         <form onSubmit={handleAdd}>
-          <div style={{ marginBottom: 12 }}><label style={labelStyle}>Your Name <span style={{ color: C.danger }}>*</span></label><input style={inputStyle} placeholder="Who is entering this?" value={userName} onChange={(e) => setUserName(e.target.value)} required aria-label="Your name" /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}><div><label style={labelStyle}>Item Name <span style={{ color: C.danger }}>*</span></label><input style={inputStyle} placeholder="e.g. Monitor, Card Reader" value={itemName} onChange={(e) => setItemName(e.target.value)} required aria-label="Item name" /></div><div><label style={labelStyle}>Item Type <span style={{ color: C.danger }}>*</span></label><select value={itemType} onChange={(e) => setItemType(e.target.value)} aria-label="Item type" style={inputStyle}>{ITEM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div></div>
           <div style={{ marginBottom: 12 }}><label style={labelStyle}>Item Description <span style={{ color: C.danger }}>*</span></label><input style={inputStyle} placeholder="Brand, model, color, size, etc." value={description} onChange={(e) => setDescription(e.target.value)} required aria-label="Description" /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}><div><label style={labelStyle}>Serial Number <span style={{ color: C.danger }}>*</span></label><input style={inputStyle} placeholder="SN-12345 or asset tag" value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} required aria-label="Serial number" /></div><div><label style={labelStyle}>Working Status <span style={{ color: C.danger }}>*</span></label><select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status" style={inputStyle}>{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div></div>
