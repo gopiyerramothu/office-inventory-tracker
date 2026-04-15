@@ -189,9 +189,36 @@ function UserPanel({ auth, onLogout }) {
       const result = await detectLabels(key);
       const { labels = [], textLines = [], parsed = {} } = result;
       setScanInfo({ labels, textLines });
-      if (labels.length > 0 && !itemName) setItemName(labels[0].name);
-      if (parsed.brand) setDescription((p) => p || parsed.brand + (parsed.model ? ` ${parsed.model}` : ""));
-      if (parsed.serialNumber && !serialNumber) setSerialNumber(parsed.serialNumber);
+
+      // Auto-fill item name from top label
+      if (labels.length > 0) setItemName(labels[0].name);
+
+      // Auto-fill description from all detected text
+      if (textLines.length > 0) setDescription(textLines.join(" "));
+
+      // Auto-fill brand into description if detected
+      if (parsed.brand) {
+        const brandModel = parsed.brand + (parsed.model ? ` ${parsed.model}` : "");
+        setDescription(brandModel + (textLines.length > 0 ? " — " + textLines.join(" ") : ""));
+      }
+
+      // Auto-fill serial number
+      if (parsed.serialNumber) setSerialNumber(parsed.serialNumber);
+      // If no serial pattern matched, look for any long alphanumeric string in text
+      if (!parsed.serialNumber && textLines.length > 0) {
+        const snCandidate = textLines.find((t) => /^[A-Z0-9][\w-]{5,}$/i.test(t.trim()));
+        if (snCandidate) setSerialNumber(snCandidate.trim());
+      }
+
+      // Auto-detect item type from labels
+      const ln = labels.map((l) => l.name.toLowerCase());
+      if (ln.some((n) => ["television", "tv", "screen", "display", "flat panel"].includes(n))) {
+        setItemType("TVs");
+      } else if (ln.some((n) => ["microphone", "headphones", "audio", "speaker", "studio"].includes(n))) {
+        setItemType("Podcast Room Inventory");
+      } else if (ln.some((n) => ["chair", "desk", "table", "shelf", "cabinet", "furniture"].includes(n))) {
+        setItemType("Office Inventory");
+      }
     } catch (err) { alert("Scan failed: " + err.message); }
     setScanning(false);
   }
@@ -437,9 +464,22 @@ function AddEquipmentTab({ auth }) {
       const result = await detectLabels(key);
       const { labels = [], textLines = [], parsed = {} } = result;
       setScanInfo({ labels, textLines });
-      if (labels.length > 0 && !itemName) setItemName(labels[0].name);
-      if (parsed.brand) setDescription((p) => p || parsed.brand + (parsed.model ? ` ${parsed.model}` : ""));
-      if (parsed.serialNumber && !serialNumber) setSerialNumber(parsed.serialNumber);
+
+      if (labels.length > 0) setItemName(labels[0].name);
+      if (textLines.length > 0) setDescription(textLines.join(" "));
+      if (parsed.brand) {
+        const brandModel = parsed.brand + (parsed.model ? ` ${parsed.model}` : "");
+        setDescription(brandModel + (textLines.length > 0 ? " — " + textLines.join(" ") : ""));
+      }
+      if (parsed.serialNumber) setSerialNumber(parsed.serialNumber);
+      if (!parsed.serialNumber && textLines.length > 0) {
+        const snCandidate = textLines.find((t) => /^[A-Z0-9][\w-]{5,}$/i.test(t.trim()));
+        if (snCandidate) setSerialNumber(snCandidate.trim());
+      }
+      const ln = labels.map((l) => l.name.toLowerCase());
+      if (ln.some((n) => ["television", "tv", "screen", "display", "flat panel"].includes(n))) setItemType("TVs");
+      else if (ln.some((n) => ["microphone", "headphones", "audio", "speaker", "studio"].includes(n))) setItemType("Podcast Room Inventory");
+      else if (ln.some((n) => ["chair", "desk", "table", "shelf", "cabinet", "furniture"].includes(n))) setItemType("Office Inventory");
     } catch (err) { alert("Scan failed: " + err.message); }
     setScanning(false);
   }
