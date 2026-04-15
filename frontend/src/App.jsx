@@ -81,9 +81,8 @@ function LoginScreen({ onLogin }) {
           {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
           <button type="submit" style={{ width: "100%", padding: 12, background: C.primary, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Sign In</button>
         </form>
-        <div style={{ marginTop: 20, padding: 12, background: C.bg, borderRadius: 6, fontSize: 12, color: C.textSecondary, textAlign: "left" }}>
-          <div><span style={{ fontWeight: 600 }}>Admin:</span> admin / admin123</div>
-          <div><span style={{ fontWeight: 600 }}>User:</span> user / user123</div>
+        <div style={{ marginTop: 20, padding: 12, background: C.bg, borderRadius: 6, fontSize: 12, color: C.textSecondary, textAlign: "center" }}>
+          Contact your admin for login credentials
         </div>
       </div>
     </div>
