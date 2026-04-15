@@ -7,6 +7,7 @@ import {
 } from "./icons.jsx";
 import { IconDownload } from "./icons.jsx";
 import { IconUsers } from "./icons.jsx";
+import { IconPlus } from "./icons.jsx";
 import * as XLSX from "xlsx";
 
 const ITEM_TYPES = [
@@ -336,12 +337,15 @@ function AdminDashboard({ auth, onLogout }) {
           <button onClick={() => setTab("inventory")} style={{ background: tab === "inventory" ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <IconClipboard style={{ width: 14, height: 14 }} /> Inventory
           </button>
+          <button onClick={() => setTab("add")} style={{ background: tab === "add" ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <IconPlus style={{ width: 14, height: 14 }} /> Add Equipment
+          </button>
           <button onClick={() => setTab("users")} style={{ background: tab === "users" ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <IconUsers style={{ width: 14, height: 14 }} /> Users
           </button>
         </div>
       </NavBar>
-      {tab === "inventory" ? <InventoryTab /> : <UsersTab />}
+      {tab === "inventory" ? <InventoryTab /> : tab === "add" ? <AddEquipmentTab auth={auth} /> : <UsersTab />}
     </div>
   );
 }
@@ -438,6 +442,76 @@ function UsersTab() {
             </tbody>
           </table>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Add Equipment Tab (for admin) ─── */
+function AddEquipmentTab({ auth }) {
+  const [userName, setUserName] = useState("");
+  const [itemName, setItemName] = useState("");
+  const [description, setDescription] = useState("");
+  const [itemType, setItemType] = useState("Office Inventory");
+  const [serialNumber, setSerialNumber] = useState("");
+  const [status, setStatus] = useState("Working");
+  const [location, setLocation] = useState("Suite 180");
+  const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanInfo, setScanInfo] = useState(null);
+  const [success, setSuccess] = useState("");
+
+  async function handleAdd(e) {
+    e.preventDefault();
+    if (!userName.trim() || !itemName.trim() || !description.trim() || !serialNumber.trim()) { alert("Please fill in all required fields"); return; }
+    setLoading(true);
+    try {
+      await addItem({ userName, itemName, description, itemType, serialNumber, status, location, notes });
+      setSuccess(`"${itemName}" added to inventory`);
+      setUserName(""); setItemName(""); setDescription(""); setItemType("Office Inventory");
+      setSerialNumber(""); setStatus("Working"); setLocation("Suite 180"); setNotes(""); setScanInfo(null);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) { alert("Failed: " + err.message); }
+    setLoading(false);
+  }
+
+  async function handleScan(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanning(true);
+    try {
+      const { uploadUrl, key } = await getUploadUrl();
+      await uploadImage(uploadUrl, file);
+      const result = await detectLabels(key);
+      const { labels = [], textLines = [], parsed = {} } = result;
+      setScanInfo({ labels, textLines });
+      if (labels.length > 0 && !itemName) setItemName(labels[0].name);
+      if (parsed.brand) setDescription((p) => p || parsed.brand + (parsed.model ? ` ${parsed.model}` : ""));
+      if (parsed.serialNumber && !serialNumber) setSerialNumber(parsed.serialNumber);
+    } catch (err) { alert("Scan failed: " + err.message); }
+    setScanning(false);
+  }
+
+  return (
+    <div style={{ maxWidth: 580, margin: "30px auto", padding: "0 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative", zIndex: 1 }}>
+      <div style={{ background: C.card, borderRadius: 10, padding: 28, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: `1px solid ${C.border}` }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4, color: C.textPrimary }}>Log Equipment</h2>
+        <p style={{ color: C.textSecondary, fontSize: 13, marginBottom: 20 }}>Scan a photo or fill in the details. All fields except Notes are required.</p>
+        {success && <div style={{ background: "#eafaf1", color: C.success, padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}><IconCheckCircle style={{ width: 16, height: 16 }} /> {success}</div>}
+        <form onSubmit={handleAdd}>
+          <div style={{ marginBottom: 12 }}><label style={labelStyle}>Your Name <span style={{ color: C.danger }}>*</span></label><input style={inputStyle} placeholder="Who is entering this?" value={userName} onChange={(e) => setUserName(e.target.value)} required aria-label="Your name" /></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}><div><label style={labelStyle}>Item Name <span style={{ color: C.danger }}>*</span></label><input style={inputStyle} placeholder="e.g. Monitor, Card Reader" value={itemName} onChange={(e) => setItemName(e.target.value)} required aria-label="Item name" /></div><div><label style={labelStyle}>Item Type <span style={{ color: C.danger }}>*</span></label><select value={itemType} onChange={(e) => setItemType(e.target.value)} aria-label="Item type" style={inputStyle}>{ITEM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div></div>
+          <div style={{ marginBottom: 12 }}><label style={labelStyle}>Item Description <span style={{ color: C.danger }}>*</span></label><input style={inputStyle} placeholder="Brand, model, color, size, etc." value={description} onChange={(e) => setDescription(e.target.value)} required aria-label="Description" /></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}><div><label style={labelStyle}>Serial Number <span style={{ color: C.danger }}>*</span></label><input style={inputStyle} placeholder="SN-12345 or asset tag" value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} required aria-label="Serial number" /></div><div><label style={labelStyle}>Working Status <span style={{ color: C.danger }}>*</span></label><select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status" style={inputStyle}>{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div></div>
+          <div style={{ marginBottom: 12 }}><label style={labelStyle}>Item Location <span style={{ color: C.danger }}>*</span></label><select value={location} onChange={(e) => setLocation(e.target.value)} aria-label="Location" style={inputStyle}>{LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}</select></div>
+          <div style={{ marginBottom: 16 }}><label style={labelStyle}>Notes <span style={{ color: C.textSecondary, fontSize: 11 }}>(optional)</span></label><input style={inputStyle} placeholder="Any extra info..." value={notes} onChange={(e) => setNotes(e.target.value)} aria-label="Notes" /></div>
+          {scanInfo && <div style={{ background: C.bg, padding: 12, borderRadius: 6, marginBottom: 14, fontSize: 13, border: `1px solid ${C.border}` }}>{scanInfo.labels.length > 0 && <div>Detected: {scanInfo.labels.slice(0, 5).map((l) => `${l.name} (${l.confidence}%)`).join(", ")}</div>}{scanInfo.textLines.length > 0 && <div style={{ marginTop: 4, color: C.textSecondary }}>Text: {scanInfo.textLines.slice(0, 6).join(" / ")}</div>}</div>}
+          <div style={{ display: "flex", gap: 10 }}>
+            <label style={{ background: C.card, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }} role="button" tabIndex={0}><IconCamera style={{ width: 16, height: 16 }} /> {scanning ? "Scanning..." : "Scan"}<input type="file" accept="image/*" capture="environment" onChange={handleScan} style={{ display: "none" }} aria-label="Take photo" /></label>
+            <button type="submit" disabled={loading} style={{ flex: 1, background: C.primary, color: "#fff", border: "none", borderRadius: 6, padding: "10px 20px", fontWeight: 600, fontSize: 14, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><IconCheck style={{ width: 16, height: 16 }} /> {loading ? "Adding..." : "Add to Inventory"}</button>
+          </div>
+        </form>
       </div>
     </div>
   );
