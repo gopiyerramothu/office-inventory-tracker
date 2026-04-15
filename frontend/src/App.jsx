@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useAuth } from "react-oidc-context";
 import { fetchItems, addItem, deleteItem, getUploadUrl, uploadImage, detectLabels, fetchUsers, registerUser, toggleAdmin } from "./api.js";
 import {
   IconMonitor, IconBriefcase, IconTv, IconMic, IconBox,
@@ -27,7 +28,12 @@ const TYPE_ICON = {
 
 const LOCATIONS = ["Suite 180", "Suite 300"];
 const STATUSES = ["Working", "Not Working"];
-const USERS_AUTH = {}; // kept for backward compat, Cognito handles auth now
+
+const COGNITO_DOMAIN = "https://bce-chatwidget-prod.auth.us-east-1.amazoncognito.com";
+const COGNITO_CLIENT_ID = "qqju6e883rfi23glmc8rl2t5h";
+
+// Admin emails — add admin emails here
+const ADMIN_EMAILS = ["gopi@bizcloudexperts.com", "gopiyer@gmail.com", "gopisrinivas@bizcloudexperts.com"];
 
 /* ─── Shared styles ─── */
 const C = {
@@ -47,87 +53,73 @@ const C = {
 const inputStyle = { width: "100%", padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 14, boxSizing: "border-box", color: C.textPrimary, background: C.card };
 const labelStyle = { fontSize: 12, color: C.textSecondary, display: "block", marginBottom: 4, fontWeight: 500 };
 
-const COGNITO_DOMAIN = "https://bce-chatwidget-prod.auth.us-east-1.amazoncognito.com";
-const COGNITO_CLIENT_ID = "qqju6e883rfi23glmc8rl2t5h";
-const COGNITO_REDIRECT_URI = window.location.origin;
-const COGNITO_LOGOUT_URI = window.location.origin;
-
-// Admin emails — add admin emails here
-const ADMIN_EMAILS = ["gopi@bizcloudexperts.com", "gopiyer@gmail.com", "gopisrinivas@bizcloudexperts.com"];
-
-function getCognitoLoginUrl() {
-  return `${COGNITO_DOMAIN}/login?client_id=${COGNITO_CLIENT_ID}&response_type=token&scope=openid+email+profile&redirect_uri=${encodeURIComponent(COGNITO_REDIRECT_URI)}`;
-}
-
-function getCognitoLogoutUrl() {
-  return `${COGNITO_DOMAIN}/logout?client_id=${COGNITO_CLIENT_ID}&logout_uri=${encodeURIComponent(COGNITO_LOGOUT_URI)}`;
-}
-
-function parseTokenFromHash() {
-  const hash = window.location.hash.substring(1);
-  if (!hash) return null;
-  const params = new URLSearchParams(hash);
-  const idToken = params.get("id_token");
-  if (!idToken) return null;
-  try {
-    const payload = JSON.parse(atob(idToken.split(".")[1]));
-    return {
-      username: payload.name || payload["cognito:username"] || payload.email || "User",
-      email: payload.email || "",
-      picture: payload.picture || "",
-    };
-  } catch { return null; }
-}
-
 export default function App() {
-  const [auth, setAuth] = useState(() => {
-    // Check for Cognito callback token in URL hash
-    const tokenData = parseTokenFromHash();
-    if (tokenData) {
-      window.history.replaceState(null, "", window.location.pathname);
-      // Will be updated with role after registerUser call
-      const session = { ...tokenData, role: "user" };
-      sessionStorage.setItem("inv_auth", JSON.stringify(session));
-      // Register user and check admin status
-      registerUser({ email: tokenData.email, name: tokenData.username, picture: tokenData.picture }).then((dbUser) => {
-        const role = dbUser.isAdmin || ADMIN_EMAILS.includes(tokenData.email.toLowerCase()) ? "admin" : "user";
-        const updated = { ...tokenData, role, dbId: dbUser.id };
-        sessionStorage.setItem("inv_auth", JSON.stringify(updated));
-        window.location.reload();
-      }).catch(() => {
-        const role = ADMIN_EMAILS.includes(tokenData.email.toLowerCase()) ? "admin" : "user";
-        const updated = { ...tokenData, role };
-        sessionStorage.setItem("inv_auth", JSON.stringify(updated));
-        if (role === "admin") window.location.reload();
-      });
-      return session;
-    }
-    const saved = sessionStorage.getItem("inv_auth");
-    return saved ? JSON.parse(saved) : null;
-  });
-  if (!auth) return <LoginScreen />;
-  const logout = () => { sessionStorage.removeItem("inv_auth"); window.location.href = getCognitoLogoutUrl(); };
-  return auth.role === "admin" ? <AdminDashboard auth={auth} onLogout={logout} /> : <UserPanel auth={auth} onLogout={logout} />;
-}
+  const auth = useAuth();
+  const [role, setRole] = useState(() => sessionStorage.getItem("inv_role") || "user");
 
-/* ─── Login ─── */
-function LoginScreen() {
-  return (
-    <div style={{ minHeight: "100vh", background: C.primary, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-      <div style={{ background: C.card, borderRadius: 12, padding: 40, width: 380, maxWidth: "90vw", boxShadow: "0 8px 30px rgba(0,0,0,0.2)", textAlign: "center" }}>
-        <img src="/favicon.jpg" alt="BCE Logo" style={{ width: 56, height: 56, borderRadius: 10, marginBottom: 16 }} />
-        <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", color: C.textPrimary }}>BCE Inventory</h1>
-        <p style={{ color: C.textSecondary, fontSize: 13, marginBottom: 24 }}>Sign in to manage office equipment</p>
-        <a
-          href={getCognitoLoginUrl()}
-          style={{ display: "block", width: "100%", padding: 12, background: C.primary, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer", textDecoration: "none", boxSizing: "border-box" }}
-        >
-          Sign In
-        </a>
-        <p style={{ color: C.textSecondary, fontSize: 11, marginTop: 16 }}>Sign in with your Google account or credentials</p>
+  // Handle Cognito callback — register user and determine role
+  useEffect(() => {
+    if (auth.isAuthenticated && auth.user?.profile?.email) {
+      const email = auth.user.profile.email;
+      const name = auth.user.profile.name || auth.user.profile["cognito:username"] || email;
+      const picture = auth.user.profile.picture || "";
+      registerUser({ email, name, picture }).then((dbUser) => {
+        const r = dbUser.isAdmin || ADMIN_EMAILS.includes(email.toLowerCase()) ? "admin" : "user";
+        setRole(r);
+        sessionStorage.setItem("inv_role", r);
+      }).catch(() => {
+        const r = ADMIN_EMAILS.includes(email.toLowerCase()) ? "admin" : "user";
+        setRole(r);
+        sessionStorage.setItem("inv_role", r);
+      });
+    }
+  }, [auth.isAuthenticated]);
+
+  function handleLogout() {
+    auth.removeUser();
+    sessionStorage.removeItem("inv_role");
+    const logoutUri = window.location.origin;
+    window.location.href = `${COGNITO_DOMAIN}/logout?client_id=${COGNITO_CLIENT_ID}&logout_uri=${encodeURIComponent(logoutUri)}`;
+  }
+
+  if (auth.isLoading) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: "-apple-system, sans-serif" }}>
+        Loading...
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (!auth.isAuthenticated) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.primary, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+        <div style={{ background: C.card, borderRadius: 12, padding: 40, width: 380, maxWidth: "90vw", boxShadow: "0 8px 30px rgba(0,0,0,0.2)", textAlign: "center" }}>
+          <img src="/favicon.jpg" alt="BCE Logo" style={{ width: 56, height: 56, borderRadius: 10, marginBottom: 16 }} />
+          <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", color: C.textPrimary }}>BCE Inventory</h1>
+          <p style={{ color: C.textSecondary, fontSize: 13, marginBottom: 24 }}>Sign in to manage office equipment</p>
+          {auth.error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 12 }}>{auth.error.message}</div>}
+          <button
+            onClick={() => auth.signinRedirect()}
+            style={{ width: "100%", padding: 12, background: C.primary, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+          >
+            Sign In
+          </button>
+          <p style={{ color: C.textSecondary, fontSize: 11, marginTop: 16 }}>Sign in with your Google account or credentials</p>
+        </div>
+      </div>
+    );
+  }
+
+  const authData = {
+    username: auth.user?.profile?.name || auth.user?.profile?.["cognito:username"] || auth.user?.profile?.email || "User",
+    email: auth.user?.profile?.email || "",
+    picture: auth.user?.profile?.picture || "",
+    role,
+  };
+
+  return role === "admin"
+    ? <AdminDashboard auth={authData} onLogout={handleLogout} />
+    : <UserPanel auth={authData} onLogout={handleLogout} />;
 }
 
 /* ─── Nav ─── */
