@@ -10,6 +10,10 @@ const cognitoAuthConfig = {
   redirect_uri: window.location.origin,
   response_type: "code",
   scope: "aws.cognito.signin.user.admin email openid profile",
+  onSigninCallback: () => {
+    // Remove the code and state from the URL after login
+    window.history.replaceState({}, document.title, window.location.pathname);
+  },
 };
 
 ReactDOM.createRoot(document.getElementById("root")).render(

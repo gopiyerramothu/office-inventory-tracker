@@ -415,12 +415,12 @@ function AddEquipmentTab({ auth }) {
 
   async function handleAdd(e) {
     e.preventDefault();
-    if (!userName.trim() || !itemName.trim() || !description.trim() || !serialNumber.trim()) { alert("Please fill in all required fields"); return; }
+    if (!itemName.trim() || !description.trim() || !serialNumber.trim()) { alert("Please fill in all required fields"); return; }
     setLoading(true);
     try {
-      await addItem({ userName, itemName, description, itemType, serialNumber, status, location, notes });
+      await addItem({ userName: auth.username, itemName, description, itemType, serialNumber, status, location, notes });
       setSuccess(`"${itemName}" added to inventory`);
-      setUserName(""); setItemName(""); setDescription(""); setItemType("Office Inventory");
+      setItemName(""); setDescription(""); setItemType("Office Inventory");
       setSerialNumber(""); setStatus("Working"); setLocation("Suite 180"); setNotes(""); setScanInfo(null);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) { alert("Failed: " + err.message); }
