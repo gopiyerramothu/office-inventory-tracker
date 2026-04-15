@@ -27,7 +27,7 @@ const TYPE_ICON = {
 
 const LOCATIONS = ["Suite 180", "Suite 300"];
 const STATUSES = ["Working", "Not Working"];
-const USERS_AUTH = { admin: { password: "Bce@dmin2026", role: "admin" }, bceuser: { password: "Bce@user2026", role: "user" } };
+const USERS_AUTH = {}; // kept for backward compat, Cognito handles auth now
 
 /* ─── Shared styles ─── */
 const C = {
@@ -47,118 +47,84 @@ const C = {
 const inputStyle = { width: "100%", padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 14, boxSizing: "border-box", color: C.textPrimary, background: C.card };
 const labelStyle = { fontSize: 12, color: C.textSecondary, display: "block", marginBottom: 4, fontWeight: 500 };
 
-const GOOGLE_CLIENT_ID = "749070913271-o81t2ssphmlhop16tlh3j6uhgoplsj10.apps.googleusercontent.com";
+const COGNITO_DOMAIN = "https://bce-chatwidget-prod.auth.us-east-1.amazoncognito.com";
+const COGNITO_CLIENT_ID = "qqju6e883rfi23glmc8rl2t5h";
+const COGNITO_REDIRECT_URI = window.location.origin;
+const COGNITO_LOGOUT_URI = window.location.origin;
 
-// Admin emails — add your admin Google emails here
+// Admin emails — add admin emails here
 const ADMIN_EMAILS = ["gopi@bizcloudexperts.com", "gopiyer@gmail.com", "gopisrinivas@bizcloudexperts.com"];
+
+function getCognitoLoginUrl() {
+  return `${COGNITO_DOMAIN}/login?client_id=${COGNITO_CLIENT_ID}&response_type=token&scope=openid+email+profile&redirect_uri=${encodeURIComponent(COGNITO_REDIRECT_URI)}`;
+}
+
+function getCognitoLogoutUrl() {
+  return `${COGNITO_DOMAIN}/logout?client_id=${COGNITO_CLIENT_ID}&logout_uri=${encodeURIComponent(COGNITO_LOGOUT_URI)}`;
+}
+
+function parseTokenFromHash() {
+  const hash = window.location.hash.substring(1);
+  if (!hash) return null;
+  const params = new URLSearchParams(hash);
+  const idToken = params.get("id_token");
+  if (!idToken) return null;
+  try {
+    const payload = JSON.parse(atob(idToken.split(".")[1]));
+    return {
+      username: payload.name || payload["cognito:username"] || payload.email || "User",
+      email: payload.email || "",
+      picture: payload.picture || "",
+    };
+  } catch { return null; }
+}
 
 export default function App() {
   const [auth, setAuth] = useState(() => {
+    // Check for Cognito callback token in URL hash
+    const tokenData = parseTokenFromHash();
+    if (tokenData) {
+      window.history.replaceState(null, "", window.location.pathname);
+      // Will be updated with role after registerUser call
+      const session = { ...tokenData, role: "user" };
+      sessionStorage.setItem("inv_auth", JSON.stringify(session));
+      // Register user and check admin status
+      registerUser({ email: tokenData.email, name: tokenData.username, picture: tokenData.picture }).then((dbUser) => {
+        const role = dbUser.isAdmin || ADMIN_EMAILS.includes(tokenData.email.toLowerCase()) ? "admin" : "user";
+        const updated = { ...tokenData, role, dbId: dbUser.id };
+        sessionStorage.setItem("inv_auth", JSON.stringify(updated));
+        window.location.reload();
+      }).catch(() => {
+        const role = ADMIN_EMAILS.includes(tokenData.email.toLowerCase()) ? "admin" : "user";
+        const updated = { ...tokenData, role };
+        sessionStorage.setItem("inv_auth", JSON.stringify(updated));
+        if (role === "admin") window.location.reload();
+      });
+      return session;
+    }
     const saved = sessionStorage.getItem("inv_auth");
     return saved ? JSON.parse(saved) : null;
   });
-  if (!auth) return <LoginScreen onLogin={setAuth} />;
-  const logout = () => { sessionStorage.removeItem("inv_auth"); setAuth(null); };
+  if (!auth) return <LoginScreen />;
+  const logout = () => { sessionStorage.removeItem("inv_auth"); window.location.href = getCognitoLogoutUrl(); };
   return auth.role === "admin" ? <AdminDashboard auth={auth} onLogout={logout} /> : <UserPanel auth={auth} onLogout={logout} />;
 }
 
 /* ─── Login ─── */
-function LoginScreen({ onLogin }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [showManual, setShowManual] = useState(false);
-  const googleBtnRef = React.useRef(null);
-
-  useEffect(() => {
-    if (window.google?.accounts?.id) {
-      initGoogle();
-    } else {
-      const interval = setInterval(() => {
-        if (window.google?.accounts?.id) {
-          clearInterval(interval);
-          initGoogle();
-        }
-      }, 100);
-      return () => clearInterval(interval);
-    }
-    function initGoogle() {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse,
-      });
-      if (googleBtnRef.current) {
-        window.google.accounts.id.renderButton(googleBtnRef.current, {
-          theme: "outline",
-          size: "large",
-          width: 300,
-          text: "signin_with",
-        });
-      }
-    }
-  }, []);
-
-  function handleGoogleResponse(response) {
-    try {
-      const payload = JSON.parse(atob(response.credential.split(".")[1]));
-      const email = payload.email || "";
-      const name = payload.name || email;
-      // Register user and check admin status from DB
-      registerUser({ email, name, picture: payload.picture || "" }).then((dbUser) => {
-        const role = dbUser.isAdmin || ADMIN_EMAILS.includes(email.toLowerCase()) ? "admin" : "user";
-        const session = { username: name, email, role, picture: payload.picture || "", dbId: dbUser.id };
-        sessionStorage.setItem("inv_auth", JSON.stringify(session));
-        onLogin(session);
-      }).catch(() => {
-        // API not deployed yet — fall back to email check
-        const role = ADMIN_EMAILS.includes(email.toLowerCase()) ? "admin" : "user";
-        const session = { username: name, email, role, picture: payload.picture || "" };
-        sessionStorage.setItem("inv_auth", JSON.stringify(session));
-        onLogin(session);
-      });
-    } catch {
-      setError("Google sign-in failed. Try again.");
-    }
-  }
-
-  function handleLogin(e) {
-    e.preventDefault();
-    const u = USERS_AUTH[username.toLowerCase()];
-    if (u && u.password === password) {
-      const s = { username: username.toLowerCase(), role: u.role };
-      sessionStorage.setItem("inv_auth", JSON.stringify(s));
-      onLogin(s);
-    } else setError("Invalid username or password");
-  }
-
+function LoginScreen() {
   return (
     <div style={{ minHeight: "100vh", background: C.primary, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <div style={{ background: C.card, borderRadius: 12, padding: 40, width: 380, maxWidth: "90vw", boxShadow: "0 8px 30px rgba(0,0,0,0.2)", textAlign: "center" }}>
         <img src="/favicon.jpg" alt="BCE Logo" style={{ width: 56, height: 56, borderRadius: 10, marginBottom: 16 }} />
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", color: C.textPrimary }}>BCE Inventory</h1>
         <p style={{ color: C.textSecondary, fontSize: 13, marginBottom: 24 }}>Sign in to manage office equipment</p>
-
-        {/* Google Sign-In button */}
-        <div ref={googleBtnRef} style={{ display: "flex", justifyContent: "center", marginBottom: 16 }} />
-
-        {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
-
-        {!showManual ? (
-          <button onClick={() => setShowManual(true)} style={{ background: "none", border: "none", color: C.textSecondary, fontSize: 12, cursor: "pointer", marginTop: 8 }}>
-            Use manual login instead
-          </button>
-        ) : (
-          <>
-            <div style={{ borderTop: `1px solid ${C.border}`, margin: "16px 0", position: "relative" }}>
-              <span style={{ position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)", background: C.card, padding: "0 12px", fontSize: 12, color: C.textSecondary }}>or</span>
-            </div>
-            <form onSubmit={handleLogin}>
-              <input style={{ ...inputStyle, marginBottom: 10 }} placeholder="Username" value={username} onChange={(e) => { setUsername(e.target.value); setError(""); }} aria-label="Username" />
-              <input type="password" style={{ ...inputStyle, marginBottom: 16 }} placeholder="Password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} aria-label="Password" />
-              <button type="submit" style={{ width: "100%", padding: 12, background: C.primary, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Sign In</button>
-            </form>
-          </>
-        )}
+        <a
+          href={getCognitoLoginUrl()}
+          style={{ display: "block", width: "100%", padding: 12, background: C.primary, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer", textDecoration: "none", boxSizing: "border-box" }}
+        >
+          Sign In
+        </a>
+        <p style={{ color: C.textSecondary, fontSize: 11, marginTop: 16 }}>Sign in with your Google account or credentials</p>
       </div>
     </div>
   );
