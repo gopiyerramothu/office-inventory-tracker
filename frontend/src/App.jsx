@@ -45,6 +45,11 @@ const C = {
 const inputStyle = { width: "100%", padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 14, boxSizing: "border-box", color: C.textPrimary, background: C.card };
 const labelStyle = { fontSize: 12, color: C.textSecondary, display: "block", marginBottom: 4, fontWeight: 500 };
 
+const GOOGLE_CLIENT_ID = "749070913271-o81t2ssphmlhop16tlh3j6uhgoplsj10.apps.googleusercontent.com";
+
+// Admin emails — add your admin Google emails here
+const ADMIN_EMAILS = ["gopi@bizcloudexperts.com"];
+
 export default function App() {
   const [auth, setAuth] = useState(() => {
     const saved = sessionStorage.getItem("inv_auth");
@@ -60,6 +65,51 @@ function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showManual, setShowManual] = useState(false);
+  const googleBtnRef = React.useRef(null);
+
+  useEffect(() => {
+    if (window.google?.accounts?.id) {
+      initGoogle();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(interval);
+          initGoogle();
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
+    function initGoogle() {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+      });
+      if (googleBtnRef.current) {
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: "outline",
+          size: "large",
+          width: 300,
+          text: "signin_with",
+        });
+      }
+    }
+  }, []);
+
+  function handleGoogleResponse(response) {
+    try {
+      const payload = JSON.parse(atob(response.credential.split(".")[1]));
+      const email = payload.email || "";
+      const name = payload.name || email;
+      const role = ADMIN_EMAILS.includes(email.toLowerCase()) ? "admin" : "user";
+      const session = { username: name, email, role, picture: payload.picture || "" };
+      sessionStorage.setItem("inv_auth", JSON.stringify(session));
+      onLogin(session);
+    } catch {
+      setError("Google sign-in failed. Try again.");
+    }
+  }
+
   function handleLogin(e) {
     e.preventDefault();
     const u = USERS_AUTH[username.toLowerCase()];
@@ -69,21 +119,35 @@ function LoginScreen({ onLogin }) {
       onLogin(s);
     } else setError("Invalid username or password");
   }
+
   return (
     <div style={{ minHeight: "100vh", background: C.primary, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <div style={{ background: C.card, borderRadius: 12, padding: 40, width: 380, maxWidth: "90vw", boxShadow: "0 8px 30px rgba(0,0,0,0.2)", textAlign: "center" }}>
         <img src="/favicon.jpg" alt="BCE Logo" style={{ width: 56, height: 56, borderRadius: 10, marginBottom: 16 }} />
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", color: C.textPrimary }}>BCE Inventory</h1>
         <p style={{ color: C.textSecondary, fontSize: 13, marginBottom: 24 }}>Sign in to manage office equipment</p>
-        <form onSubmit={handleLogin}>
-          <input style={{ ...inputStyle, marginBottom: 10 }} placeholder="Username" value={username} onChange={(e) => { setUsername(e.target.value); setError(""); }} aria-label="Username" autoFocus />
-          <input type="password" style={{ ...inputStyle, marginBottom: 16 }} placeholder="Password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} aria-label="Password" />
-          {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
-          <button type="submit" style={{ width: "100%", padding: 12, background: C.primary, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Sign In</button>
-        </form>
-        <div style={{ marginTop: 20, padding: 12, background: C.bg, borderRadius: 6, fontSize: 12, color: C.textSecondary, textAlign: "center" }}>
-          Contact your admin for login credentials
-        </div>
+
+        {/* Google Sign-In button */}
+        <div ref={googleBtnRef} style={{ display: "flex", justifyContent: "center", marginBottom: 16 }} />
+
+        {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+
+        {!showManual ? (
+          <button onClick={() => setShowManual(true)} style={{ background: "none", border: "none", color: C.textSecondary, fontSize: 12, cursor: "pointer", marginTop: 8 }}>
+            Use manual login instead
+          </button>
+        ) : (
+          <>
+            <div style={{ borderTop: `1px solid ${C.border}`, margin: "16px 0", position: "relative" }}>
+              <span style={{ position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)", background: C.card, padding: "0 12px", fontSize: 12, color: C.textSecondary }}>or</span>
+            </div>
+            <form onSubmit={handleLogin}>
+              <input style={{ ...inputStyle, marginBottom: 10 }} placeholder="Username" value={username} onChange={(e) => { setUsername(e.target.value); setError(""); }} aria-label="Username" />
+              <input type="password" style={{ ...inputStyle, marginBottom: 16 }} placeholder="Password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} aria-label="Password" />
+              <button type="submit" style={{ width: "100%", padding: 12, background: C.primary, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Sign In</button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );
@@ -94,7 +158,7 @@ function NavBar({ auth, onLogout, children }) {
   return (
     <nav style={{ background: C.primary, padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 1 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <img src="/favicon.jpg" alt="BCE" style={{ width: 28, height: 28, borderRadius: 6 }} />
+        {auth.picture ? <img src={auth.picture} alt="" style={{ width: 28, height: 28, borderRadius: "50%" }} /> : <img src="/favicon.jpg" alt="BCE" style={{ width: 28, height: 28, borderRadius: 6 }} />}
         <div>
           <div style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>BCE Inventory</div>
           <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
