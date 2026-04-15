@@ -511,8 +511,8 @@ function AddEquipmentTab({ auth }) {
 function InventoryTab() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState("All");
-  const [filterStatus, setFilterStatus] = useState("All");
+  const [activeTab, setActiveTab] = useState("Office Inventory");
+  const [showWorking, setShowWorking] = useState(true);
   const [filterLocation, setFilterLocation] = useState("All");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -535,146 +535,137 @@ function InventoryTab() {
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-    XLSX.writeFile(wb, `BCE_Inventory_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, activeTab);
+    XLSX.writeFile(wb, `BCE_${activeTab.replace(/\s/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
+  const statusFilter = showWorking ? "Working" : "Not Working";
   const filtered = items
-    .filter((i) => filterType === "All" || (i.itemType || i.category) === filterType)
-    .filter((i) => filterStatus === "All" || i.status === filterStatus)
+    .filter((i) => (i.itemType || i.category || "Other") === activeTab)
+    .filter((i) => (i.status || "Working") === statusFilter)
     .filter((i) => filterLocation === "All" || (i.location || i.room) === filterLocation)
     .filter((i) => !search || [i.itemName, i.name, i.userName, i.addedBy, i.description, i.serialNumber, i.notes].filter(Boolean).some((v) => v.toLowerCase().includes(search.toLowerCase())));
 
-  const typeCounts = items.reduce((a, i) => { const k = i.itemType || i.category || "Other"; a[k] = (a[k] || 0) + 1; return a; }, {});
-  const statusCounts = items.reduce((a, i) => { a[i.status || "Working"] = (a[i.status || "Working"] || 0) + 1; return a; }, {});
-  const locCounts = items.reduce((a, i) => { const k = i.location || i.room || "Other"; a[k] = (a[k] || 0) + 1; return a; }, {});
+  const TABS = ["Office Inventory", "FieldsManager Inventory", "TVs", "Podcast Room Inventory"];
 
   const th = { padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `2px solid ${C.border}`, background: C.bg, whiteSpace: "nowrap" };
   const td = { padding: "10px 12px", fontSize: 13, borderBottom: `1px solid ${C.bg}`, color: C.textPrimary };
 
-  function FilterChip({ label, active, onClick }) {
-    return (
-      <button onClick={onClick} style={{ background: active ? C.primary : C.card, color: active ? "#fff" : C.textPrimary, border: `1px solid ${active ? C.primary : C.border}`, borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-        {label}
-      </button>
-    );
-  }
-
   return (
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative", zIndex: 1 }}>
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative", zIndex: 1 }}>
 
-        {/* Refresh + Download */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12 }}>
-          <button onClick={loadItems} disabled={refreshing} style={{ background: C.card, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            <IconRefresh style={{ width: 14, height: 14 }} /> {refreshing ? "Loading..." : "Refresh"}
+      {/* Category Tabs */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: `2px solid ${C.border}` }}>
+        {TABS.map((tab) => {
+          const Icon = TYPE_ICON[tab] || IconBox;
+          const count = items.filter((i) => (i.itemType || i.category || "Other") === tab).length;
+          return (
+            <button key={tab} onClick={() => setActiveTab(tab)} style={{
+              padding: "12px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none",
+              background: activeTab === tab ? C.card : "transparent",
+              color: activeTab === tab ? C.primary : C.textSecondary,
+              borderBottom: activeTab === tab ? `3px solid ${C.primary}` : "3px solid transparent",
+              marginBottom: -2, display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s",
+            }}>
+              <Icon style={{ width: 16, height: 16 }} /> {tab} <span style={{ background: activeTab === tab ? C.primary : C.border, color: activeTab === tab ? "#fff" : C.textSecondary, padding: "1px 8px", borderRadius: 10, fontSize: 11 }}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Filters row */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
+        {/* Working toggle */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 14px" }}>
+          <span style={{ fontSize: 12, color: C.textSecondary }}>Status:</span>
+          <button onClick={() => setShowWorking(true)} style={{ padding: "4px 12px", borderRadius: 4, fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", background: showWorking ? "#eafaf1" : "transparent", color: showWorking ? C.success : C.textSecondary }}>
+            Working
           </button>
-          <button onClick={exportExcel} style={{ background: C.primary, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            <IconDownload style={{ width: 14, height: 14 }} /> Download Excel
+          <button onClick={() => setShowWorking(false)} style={{ padding: "4px 12px", borderRadius: 4, fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", background: !showWorking ? "#fdeaea" : "transparent", color: !showWorking ? C.danger : C.textSecondary }}>
+            Not Working
           </button>
         </div>
 
-        {/* Filters */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ background: C.primary, borderRadius: 8, padding: "10px 18px", color: "#fff", textAlign: "center", minWidth: 80 }}>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>{items.length}</div>
-            <div style={{ fontSize: 10, opacity: 0.8 }}>Total</div>
-          </div>
-
-          <div style={{ width: 1, height: 36, background: C.border }} />
-
-          {/* Type filters — always show all types */}
-          {ITEM_TYPES.map((t) => {
-            const Icon = TYPE_ICON[t] || IconBox;
-            const c = items.filter((i) => (i.itemType || i.category) === t).length;
-            return <FilterChip key={t} label={<><Icon style={{ width: 14, height: 14 }} /> {t} ({c})</>} active={filterType === t} onClick={() => setFilterType(filterType === t ? "All" : t)} />;
-          })}
-
-          <div style={{ width: 1, height: 36, background: C.border }} />
-
-          {/* Status filters */}
-          {STATUSES.map((s) => {
-            const c = items.filter((i) => (i.status || "Working") === s).length;
-            return <FilterChip key={s} label={<>{s === "Working" ? <IconCheckCircle style={{ width: 14, height: 14, color: C.success }} /> : <IconXCircle style={{ width: 14, height: 14, color: C.danger }} />} {s} ({c})</>} active={filterStatus === s} onClick={() => setFilterStatus(filterStatus === s ? "All" : s)} />;
-          })}
-
-          <div style={{ width: 1, height: 36, background: C.border }} />
-
-          {/* Location filters */}
-          {LOCATIONS.map((l) => {
-            const c = items.filter((i) => (i.location || i.room) === l).length;
-            return <FilterChip key={l} label={`${l} (${c})`} active={filterLocation === l} onClick={() => setFilterLocation(filterLocation === l ? "All" : l)} />;
-          })}
-
-          <div style={{ flex: 1 }} />
+        {/* Location dropdown */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 14px" }}>
+          <span style={{ fontSize: 12, color: C.textSecondary }}>Location:</span>
+          <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)} style={{ border: "none", fontSize: 12, fontWeight: 600, color: C.textPrimary, background: "transparent", cursor: "pointer" }}>
+            <option value="All">All Locations</option>
+            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
         </div>
 
         {/* Search */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
-            <IconSearch style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: C.textSecondary }} />
-            <input style={{ ...inputStyle, paddingLeft: 36, borderRadius: 6 }} placeholder="Search name, serial, description..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
-          </div>
-          {filterType !== "All" && <button onClick={() => setFilterType("All")} style={{ background: C.bg, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><IconX style={{ width: 12, height: 12 }} /> {filterType}</button>}
-          {filterStatus !== "All" && <button onClick={() => setFilterStatus("All")} style={{ background: C.bg, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><IconX style={{ width: 12, height: 12 }} /> {filterStatus}</button>}
-          {filterLocation !== "All" && <button onClick={() => setFilterLocation("All")} style={{ background: C.bg, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><IconX style={{ width: 12, height: 12 }} /> {filterLocation}</button>}
-          <span style={{ fontSize: 13, color: C.textSecondary }}>{filtered.length} item{filtered.length !== 1 ? "s" : ""}</span>
+        <div style={{ flex: 1, minWidth: 180, position: "relative" }}>
+          <IconSearch style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: C.textSecondary }} />
+          <input style={{ ...inputStyle, paddingLeft: 34, borderRadius: 6, fontSize: 13 }} placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
         </div>
 
-        {/* Table */}
-        <div style={{ background: C.card, borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-          {filtered.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 60, color: C.textSecondary }}>
-              <IconClipboard style={{ width: 40, height: 40, marginBottom: 12, opacity: 0.4 }} />
-              <div style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>{items.length === 0 ? "No equipment logged yet" : "No items match your filters"}</div>
-            </div>
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    <th style={th}>#</th>
-                    <th style={th}>Entered By</th>
-                    <th style={th}>Item Name</th>
-                    <th style={th}>Description</th>
-                    <th style={th}>Type</th>
-                    <th style={th}>Serial #</th>
-                    <th style={th}>Status</th>
-                    <th style={th}>Location</th>
-                    <th style={th}>Date</th>
-                    <th style={th}>Notes</th>
-                    <th style={{ ...th, textAlign: "center" }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((item, idx) => (
-                    <tr key={item.id} style={{ background: idx % 2 === 0 ? C.card : C.bg }}>
-                      <td style={{ ...td, color: C.textSecondary, fontSize: 11 }}>{idx + 1}</td>
-                      <td style={td}>{item.userName || item.addedBy || "—"}</td>
-                      <td style={{ ...td, fontWeight: 600 }}>{item.itemName || item.name || "—"}</td>
-                      <td style={{ ...td, fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.description || "—"}</td>
-                      <td style={td}><span style={{ background: C.tagBg, color: C.tagText, padding: "2px 8px", borderRadius: 4, fontSize: 11 }}>{item.itemType || item.category || "—"}</span></td>
-                      <td style={{ ...td, fontSize: 12, fontFamily: "monospace" }}>{item.serialNumber || "—"}</td>
-                      <td style={td}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, background: item.status === "Not Working" ? "#fdeaea" : "#eafaf1", color: item.status === "Not Working" ? C.danger : C.success }}>
-                          {item.status === "Not Working" ? <IconXCircle style={{ width: 12, height: 12 }} /> : <IconCheckCircle style={{ width: 12, height: 12 }} />}
-                          {item.status || "Working"}
-                        </span>
-                      </td>
-                      <td style={{ ...td, fontSize: 12 }}>{item.location || item.room || "—"}</td>
-                      <td style={{ ...td, fontSize: 12, color: C.textSecondary }}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—"}</td>
-                      <td style={{ ...td, fontSize: 12, color: C.textSecondary, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.notes || "—"}</td>
-                      <td style={{ ...td, textAlign: "center" }}>
-                        <button onClick={() => handleDelete(item.id)} aria-label={`Delete ${item.itemName || item.name}`} style={{ background: "none", border: `1px solid #fad4d4`, color: C.danger, borderRadius: 4, padding: "4px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11 }}>
-                          <IconTrash style={{ width: 12, height: 12 }} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        {/* Actions */}
+        <button onClick={loadItems} disabled={refreshing} style={{ background: C.card, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <IconRefresh style={{ width: 14, height: 14 }} /> {refreshing ? "..." : "Refresh"}
+        </button>
+        <button onClick={exportExcel} style={{ background: C.primary, color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <IconDownload style={{ width: 14, height: 14 }} /> Excel
+        </button>
+
+        <span style={{ fontSize: 12, color: C.textSecondary }}>{filtered.length} item{filtered.length !== 1 ? "s" : ""}</span>
       </div>
+
+      {/* Table */}
+      <div style={{ background: C.card, borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+        {filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 60, color: C.textSecondary }}>
+            <IconClipboard style={{ width: 40, height: 40, marginBottom: 12, opacity: 0.4 }} />
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>No {statusFilter.toLowerCase()} items in {activeTab}</div>
+            <div style={{ fontSize: 13, marginTop: 4 }}>Try switching the status or location filter</div>
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={th}>#</th>
+                  <th style={th}>Entered By</th>
+                  <th style={th}>Item Name</th>
+                  <th style={th}>Description</th>
+                  <th style={th}>Serial #</th>
+                  <th style={th}>Status</th>
+                  <th style={th}>Location</th>
+                  <th style={th}>Date</th>
+                  <th style={th}>Notes</th>
+                  <th style={{ ...th, textAlign: "center" }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((item, idx) => (
+                  <tr key={item.id} style={{ background: idx % 2 === 0 ? C.card : C.bg }}>
+                    <td style={{ ...td, color: C.textSecondary, fontSize: 11 }}>{idx + 1}</td>
+                    <td style={td}>{item.userName || item.addedBy || "—"}</td>
+                    <td style={{ ...td, fontWeight: 600 }}>{item.itemName || item.name || "—"}</td>
+                    <td style={{ ...td, fontSize: 12, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.description || "—"}</td>
+                    <td style={{ ...td, fontSize: 12, fontFamily: "monospace" }}>{item.serialNumber || "—"}</td>
+                    <td style={td}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, background: item.status === "Not Working" ? "#fdeaea" : "#eafaf1", color: item.status === "Not Working" ? C.danger : C.success }}>
+                        {item.status === "Not Working" ? <IconXCircle style={{ width: 12, height: 12 }} /> : <IconCheckCircle style={{ width: 12, height: 12 }} />}
+                        {item.status || "Working"}
+                      </span>
+                    </td>
+                    <td style={{ ...td, fontSize: 12 }}>{item.location || item.room || "—"}</td>
+                    <td style={{ ...td, fontSize: 12, color: C.textSecondary }}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—"}</td>
+                    <td style={{ ...td, fontSize: 12, color: C.textSecondary, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.notes || "—"}</td>
+                    <td style={{ ...td, textAlign: "center" }}>
+                      <button onClick={() => handleDelete(item.id)} aria-label={`Delete ${item.itemName || item.name}`} style={{ background: "none", border: `1px solid #fad4d4`, color: C.danger, borderRadius: 4, padding: "4px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+                        <IconTrash style={{ width: 12, height: 12 }} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
