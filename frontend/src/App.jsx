@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { fetchItems, addItem, deleteItem, getUploadUrl, uploadImage, detectLabels } from "./api.js";
+import { fetchItems, addItem, deleteItem, getUploadUrl, uploadImage, detectLabels, fetchUsers, registerUser, toggleAdmin } from "./api.js";
 import {
   IconMonitor, IconBriefcase, IconTv, IconMic, IconBox,
   IconSearch, IconCamera, IconTrash, IconCheck, IconX,
   IconRefresh, IconLogout, IconClipboard, IconCheckCircle, IconXCircle,
 } from "./icons.jsx";
 import { IconDownload } from "./icons.jsx";
+import { IconUsers } from "./icons.jsx";
 import * as XLSX from "xlsx";
 
 const ITEM_TYPES = [
@@ -48,7 +49,7 @@ const labelStyle = { fontSize: 12, color: C.textSecondary, display: "block", mar
 const GOOGLE_CLIENT_ID = "749070913271-o81t2ssphmlhop16tlh3j6uhgoplsj10.apps.googleusercontent.com";
 
 // Admin emails — add your admin Google emails here
-const ADMIN_EMAILS = ["gopi@bizcloudexperts.com"];
+const ADMIN_EMAILS = ["gopi@bizcloudexperts.com", "gopiyer@gmail.com", "gopisrinivas@bizcloudexperts.com"];
 
 export default function App() {
   const [auth, setAuth] = useState(() => {
@@ -101,10 +102,19 @@ function LoginScreen({ onLogin }) {
       const payload = JSON.parse(atob(response.credential.split(".")[1]));
       const email = payload.email || "";
       const name = payload.name || email;
-      const role = ADMIN_EMAILS.includes(email.toLowerCase()) ? "admin" : "user";
-      const session = { username: name, email, role, picture: payload.picture || "" };
-      sessionStorage.setItem("inv_auth", JSON.stringify(session));
-      onLogin(session);
+      // Register user and check admin status from DB
+      registerUser({ email, name, picture: payload.picture || "" }).then((dbUser) => {
+        const role = dbUser.isAdmin || ADMIN_EMAILS.includes(email.toLowerCase()) ? "admin" : "user";
+        const session = { username: name, email, role, picture: payload.picture || "", dbId: dbUser.id };
+        sessionStorage.setItem("inv_auth", JSON.stringify(session));
+        onLogin(session);
+      }).catch(() => {
+        // API not deployed yet — fall back to email check
+        const role = ADMIN_EMAILS.includes(email.toLowerCase()) ? "admin" : "user";
+        const session = { username: name, email, role, picture: payload.picture || "" };
+        sessionStorage.setItem("inv_auth", JSON.stringify(session));
+        onLogin(session);
+      });
     } catch {
       setError("Google sign-in failed. Try again.");
     }
@@ -317,6 +327,124 @@ function UserPanel({ auth, onLogout }) {
 
 /* ─── Admin Dashboard ─── */
 function AdminDashboard({ auth, onLogout }) {
+  const [tab, setTab] = useState("inventory");
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, position: "relative" }}>
+      <Watermark />
+      <NavBar auth={auth} onLogout={onLogout}>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button onClick={() => setTab("inventory")} style={{ background: tab === "inventory" ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <IconClipboard style={{ width: 14, height: 14 }} /> Inventory
+          </button>
+          <button onClick={() => setTab("users")} style={{ background: tab === "users" ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <IconUsers style={{ width: 14, height: 14 }} /> Users
+          </button>
+        </div>
+      </NavBar>
+      {tab === "inventory" ? <InventoryTab /> : <UsersTab />}
+    </div>
+  );
+}
+
+/* ─── Users Tab ─── */
+function UsersTab() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState(null);
+
+  useEffect(() => { loadUsers(); }, []);
+  async function loadUsers() { setLoading(true); try { const d = await fetchUsers(); setUsers(Array.isArray(d) ? d : []); } catch {} setLoading(false); }
+
+  async function handleToggle(user) {
+    setToggling(user.id);
+    try {
+      await toggleAdmin(user.id, !user.isAdmin);
+      await loadUsers();
+    } catch (err) { alert("Failed: " + err.message); }
+    setToggling(null);
+  }
+
+  const th = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `2px solid ${C.border}`, background: C.bg };
+  const td = { padding: "12px 14px", fontSize: 13, borderBottom: `1px solid ${C.bg}`, color: C.textPrimary };
+
+  return (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative", zIndex: 1 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: C.textPrimary, margin: 0 }}>User Management</h2>
+          <p style={{ fontSize: 13, color: C.textSecondary, margin: "4px 0 0" }}>{users.length} user{users.length !== 1 ? "s" : ""} have logged in</p>
+        </div>
+        <button onClick={loadUsers} style={{ background: C.primary, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <IconRefresh style={{ width: 14, height: 14 }} /> Refresh
+        </button>
+      </div>
+
+      <div style={{ background: C.card, borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: 40, color: C.textSecondary }}>Loading users...</div>
+        ) : users.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 60, color: C.textSecondary }}>
+            <IconUsers style={{ width: 40, height: 40, marginBottom: 12, opacity: 0.4 }} />
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>No users yet</div>
+            <div style={{ fontSize: 13, marginTop: 4 }}>Users will appear here after they sign in</div>
+          </div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={th}>#</th>
+                <th style={th}>User</th>
+                <th style={th}>Email</th>
+                <th style={th}>First Login</th>
+                <th style={th}>Last Login</th>
+                <th style={{ ...th, textAlign: "center" }}>Admin Access</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user, idx) => (
+                <tr key={user.id} style={{ background: idx % 2 === 0 ? C.card : C.bg }}>
+                  <td style={{ ...td, color: C.textSecondary, fontSize: 11 }}>{idx + 1}</td>
+                  <td style={td}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {user.picture ? <img src={user.picture} alt="" style={{ width: 28, height: 28, borderRadius: "50%" }} /> : <IconUsers style={{ width: 20, height: 20, color: C.textSecondary }} />}
+                      <span style={{ fontWeight: 600 }}>{user.name}</span>
+                    </div>
+                  </td>
+                  <td style={{ ...td, fontSize: 12 }}>{user.email}</td>
+                  <td style={{ ...td, fontSize: 12, color: C.textSecondary }}>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}</td>
+                  <td style={{ ...td, fontSize: 12, color: C.textSecondary }}>{user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : "—"}</td>
+                  <td style={{ ...td, textAlign: "center" }}>
+                    <button
+                      onClick={() => handleToggle(user)}
+                      disabled={toggling === user.id}
+                      style={{
+                        background: user.isAdmin ? C.success : C.border,
+                        color: user.isAdmin ? "#fff" : C.textSecondary,
+                        border: "none",
+                        borderRadius: 20,
+                        padding: "6px 16px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        minWidth: 70,
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      {toggling === user.id ? "..." : user.isAdmin ? "Admin" : "User"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Inventory Tab ─── */
+function InventoryTab() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("All");
@@ -369,15 +497,17 @@ function AdminDashboard({ auth, onLogout }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, position: "relative" }}>
-      <Watermark />
-      <NavBar auth={auth} onLogout={onLogout}>
-        <button onClick={loadItems} disabled={refreshing} style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-          <IconRefresh style={{ width: 14, height: 14 }} /> Refresh
-        </button>
-      </NavBar>
-
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", position: "relative", zIndex: 1 }}>
+
+        {/* Refresh + Download */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12 }}>
+          <button onClick={loadItems} disabled={refreshing} style={{ background: C.card, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <IconRefresh style={{ width: 14, height: 14 }} /> {refreshing ? "Loading..." : "Refresh"}
+          </button>
+          <button onClick={exportExcel} style={{ background: C.primary, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <IconDownload style={{ width: 14, height: 14 }} /> Download Excel
+          </button>
+        </div>
 
         {/* Filters */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
@@ -412,11 +542,6 @@ function AdminDashboard({ auth, onLogout }) {
           })}
 
           <div style={{ flex: 1 }} />
-
-          {/* Download Excel */}
-          <button onClick={exportExcel} style={{ background: C.primary, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            <IconDownload style={{ width: 14, height: 14 }} /> Download Excel
-          </button>
         </div>
 
         {/* Search */}
@@ -487,6 +612,5 @@ function AdminDashboard({ auth, onLogout }) {
           )}
         </div>
       </div>
-    </div>
   );
 }

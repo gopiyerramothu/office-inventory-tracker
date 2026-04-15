@@ -21,6 +21,13 @@ export class InventoryStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    // DynamoDB table for users
+    const usersTable = new dynamodb.Table(this, "UsersTable", {
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
     // S3 bucket for uploaded equipment images
     const imageBucket = new s3.Bucket(this, "ImageBucket", {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -41,6 +48,7 @@ export class InventoryStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, "../../backend")),
       environment: {
         TABLE_NAME: table.tableName,
+        USERS_TABLE_NAME: usersTable.tableName,
         IMAGE_BUCKET: imageBucket.bucketName,
       },
       timeout: cdk.Duration.seconds(30),
@@ -48,6 +56,7 @@ export class InventoryStack extends cdk.Stack {
 
     // Grant Lambda permissions
     table.grantReadWriteData(apiHandler);
+    usersTable.grantReadWriteData(apiHandler);
     imageBucket.grantReadWrite(apiHandler);
     apiHandler.addToRolePolicy(
       new iam.PolicyStatement({
@@ -77,6 +86,13 @@ export class InventoryStack extends cdk.Stack {
 
     const detect = api.root.addResource("detect");
     detect.addMethod("POST", new apigateway.LambdaIntegration(apiHandler));
+
+    const users = api.root.addResource("users");
+    users.addMethod("GET", new apigateway.LambdaIntegration(apiHandler));
+    users.addMethod("POST", new apigateway.LambdaIntegration(apiHandler));
+
+    const singleUser = users.addResource("{id}");
+    singleUser.addMethod("PUT", new apigateway.LambdaIntegration(apiHandler));
 
     // S3 bucket for frontend hosting
     const websiteBucket = new s3.Bucket(this, "WebsiteBucket", {

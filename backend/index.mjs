@@ -18,6 +18,7 @@ const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const s3 = new S3Client({});
 const rekognition = new RekognitionClient({});
 const TABLE = process.env.TABLE_NAME;
+const USERS_TABLE = process.env.USERS_TABLE_NAME;
 const BUCKET = process.env.IMAGE_BUCKET;
 
 const headers = {
@@ -167,6 +168,64 @@ export const handler = async (event) => {
           parsed,
         }),
       };
+    }
+
+    // GET /users — list all users
+    if (httpMethod === "GET" && resource === "/users") {
+      const { Items = [] } = await ddb.send(new ScanCommand({ TableName: USERS_TABLE }));
+      return { statusCode: 200, headers, body: JSON.stringify(Items) };
+    }
+
+    // POST /users — register/update a user login
+    if (httpMethod === "POST" && resource === "/users") {
+      const data = JSON.parse(body);
+      const email = data.email?.toLowerCase();
+      if (!email) return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
+
+      // Check if user exists
+      const existing = await ddb.send(new ScanCommand({
+        TableName: USERS_TABLE,
+        FilterExpression: "email = :e",
+        ExpressionAttributeValues: { ":e": email },
+      }));
+
+      if (existing.Items?.length > 0) {
+        // Update last login
+        const user = existing.Items[0];
+        user.lastLogin = new Date().toISOString();
+        user.name = data.name || user.name;
+        user.picture = data.picture || user.picture;
+        await ddb.send(new PutCommand({ TableName: USERS_TABLE, Item: user }));
+        return { statusCode: 200, headers, body: JSON.stringify(user) };
+      }
+
+      // New user
+      const user = {
+        id: randomUUID(),
+        email,
+        name: data.name || email,
+        picture: data.picture || "",
+        isAdmin: false,
+        lastLogin: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+      await ddb.send(new PutCommand({ TableName: USERS_TABLE, Item: user }));
+      return { statusCode: 201, headers, body: JSON.stringify(user) };
+    }
+
+    // PUT /users/{id} — toggle admin
+    if (httpMethod === "PUT" && resource === "/users/{id}") {
+      const data = JSON.parse(body);
+      const { Items = [] } = await ddb.send(new ScanCommand({
+        TableName: USERS_TABLE,
+        FilterExpression: "id = :id",
+        ExpressionAttributeValues: { ":id": pathParameters.id },
+      }));
+      if (Items.length === 0) return { statusCode: 404, headers, body: JSON.stringify({ error: "User not found" }) };
+      const user = Items[0];
+      user.isAdmin = !!data.isAdmin;
+      await ddb.send(new PutCommand({ TableName: USERS_TABLE, Item: user }));
+      return { statusCode: 200, headers, body: JSON.stringify(user) };
     }
 
     return {
