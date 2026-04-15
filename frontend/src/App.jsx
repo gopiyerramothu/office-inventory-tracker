@@ -25,7 +25,7 @@ const TYPE_ICON = {
 
 const LOCATIONS = ["Suite 180", "Suite 300"];
 const STATUSES = ["Working", "Not Working"];
-const USERS_AUTH = { admin: { password: "admin123", role: "admin" }, user: { password: "user123", role: "user" } };
+const USERS_AUTH = { admin: { password: "Bce@dmin2026", role: "admin" }, bceuser: { password: "Bce@user2026", role: "user" } };
 
 /* ─── Shared styles ─── */
 const C = {
