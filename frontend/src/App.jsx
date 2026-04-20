@@ -146,7 +146,7 @@ function NavBar({ auth, onLogout, children }) {
 }
 
 function Watermark() {
-  return <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", opacity: 0.03, pointerEvents: "none", zIndex: 0 }}><img src="/logo-bg.png" alt="" style={{ width: 500, maxWidth: "90vw" }} /></div>;
+  return <div style={{ position: "fixed", bottom: 16, right: 24, opacity: 0.15, pointerEvents: "none", zIndex: 0 }}><img src="/logo-bg.png" alt="" style={{ width: 120 }} /></div>;
 }
 
 /* ─── User Panel ─── */
