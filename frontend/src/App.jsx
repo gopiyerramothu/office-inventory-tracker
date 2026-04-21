@@ -53,14 +53,24 @@ const C = {
 const inputStyle = { width: "100%", padding: "10px 14px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 14, boxSizing: "border-box", color: C.textPrimary, background: C.card };
 const labelStyle = { fontSize: 12, color: C.textSecondary, display: "block", marginBottom: 4, fontWeight: 500 };
 
+const ALLOWED_DOMAIN = "bizcloudexperts.com";
+
 export default function App() {
   const auth = useAuth();
   const [role, setRole] = useState(() => sessionStorage.getItem("inv_role") || "user");
+  const [unauthorized, setUnauthorized] = useState(false);
 
   // Handle Cognito callback — register user and determine role
   useEffect(() => {
     if (auth.isAuthenticated && auth.user?.profile?.email) {
       const email = auth.user.profile.email;
+
+      // Block non-bizcloudexperts.com emails
+      if (!email.toLowerCase().endsWith(`@${ALLOWED_DOMAIN}`)) {
+        setUnauthorized(true);
+        return;
+      }
+
       const name = auth.user.profile.name || auth.user.profile["cognito:username"] || email;
       const picture = auth.user.profile.picture || "";
       registerUser({ email, name, picture }).then((dbUser) => {
@@ -78,6 +88,7 @@ export default function App() {
   function handleLogout() {
     auth.removeUser();
     sessionStorage.removeItem("inv_role");
+    setUnauthorized(false);
     const logoutUri = window.location.origin;
     window.location.href = `${COGNITO_DOMAIN}/logout?client_id=${COGNITO_CLIENT_ID}&logout_uri=${encodeURIComponent(logoutUri)}`;
   }
@@ -86,6 +97,27 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: C.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: "-apple-system, sans-serif" }}>
         Loading...
+      </div>
+    );
+  }
+
+  // Unauthorized domain
+  if (unauthorized || (auth.isAuthenticated && auth.user?.profile?.email && !auth.user.profile.email.toLowerCase().endsWith(`@${ALLOWED_DOMAIN}`))) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.primary, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+        <div style={{ background: C.card, borderRadius: 12, padding: 40, width: 400, maxWidth: "90vw", boxShadow: "0 8px 30px rgba(0,0,0,0.2)", textAlign: "center" }}>
+          <img src="/favicon.jpg" alt="BCE Logo" style={{ width: 56, height: 56, borderRadius: 10, marginBottom: 16 }} />
+          <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 8px", color: C.textPrimary }}>Access Denied</h1>
+          <p style={{ color: C.textSecondary, fontSize: 13, marginBottom: 8 }}>
+            Only <strong>@bizcloudexperts.com</strong> accounts are allowed.
+          </p>
+          <p style={{ color: C.textSecondary, fontSize: 12, marginBottom: 20 }}>
+            You signed in as: {auth.user?.profile?.email}
+          </p>
+          <button onClick={handleLogout} style={{ width: "100%", padding: 12, background: C.danger, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+            Sign Out
+          </button>
+        </div>
       </div>
     );
   }
