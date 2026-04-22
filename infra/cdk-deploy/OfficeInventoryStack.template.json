@@ -15,7 +15,10 @@
       "AttributeName": "id",
       "KeyType": "HASH"
      }
-    ]
+    ],
+    "SSESpecification": {
+     "SSEEnabled": true
+    }
    },
    "UpdateReplacePolicy": "Delete",
    "DeletionPolicy": "Delete",
@@ -38,7 +41,10 @@
       "AttributeName": "id",
       "KeyType": "HASH"
      }
-    ]
+    ],
+    "SSESpecification": {
+     "SSEEnabled": true
+    }
    },
    "UpdateReplacePolicy": "Delete",
    "DeletionPolicy": "Delete",
@@ -65,6 +71,12 @@
       }
      ]
     },
+    "PublicAccessBlockConfiguration": {
+     "BlockPublicAcls": true,
+     "BlockPublicPolicy": true,
+     "IgnorePublicAcls": true,
+     "RestrictPublicBuckets": true
+    },
     "Tags": [
      {
       "Key": "aws-cdk:auto-delete-objects",
@@ -86,6 +98,40 @@
     },
     "PolicyDocument": {
      "Statement": [
+      {
+       "Action": "s3:*",
+       "Condition": {
+        "Bool": {
+         "aws:SecureTransport": "false"
+        }
+       },
+       "Effect": "Deny",
+       "Principal": {
+        "AWS": "*"
+       },
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ImageBucket97210811",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "ImageBucket97210811",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
       {
        "Action": [
         "s3:PutBucketPolicy",
@@ -398,7 +444,7 @@
    "Properties": {
     "Code": {
      "S3Bucket": "cdk-hnb659fds-assets-083868342691-us-east-1",
-     "S3Key": "e7923b4443ebda3b91a1d27cb66d665ce90800cfe55efa560ac0909798d418bb.zip"
+     "S3Key": "c1b5fcebd7e83078630a1620d85a8d04e3cc41cad0df55cb5d5020cc0bb18d55.zip"
     },
     "Environment": {
      "Variables": {
@@ -429,7 +475,7 @@
    ],
    "Metadata": {
     "aws:cdk:path": "OfficeInventoryStack/ApiHandler/Resource",
-    "aws:asset:path": "asset.e7923b4443ebda3b91a1d27cb66d665ce90800cfe55efa560ac0909798d418bb",
+    "aws:asset:path": "asset.c1b5fcebd7e83078630a1620d85a8d04e3cc41cad0df55cb5d5020cc0bb18d55",
     "aws:asset:is-bundled": false,
     "aws:asset:property": "Code"
    }
@@ -498,7 +544,7 @@
     "aws:cdk:path": "OfficeInventoryStack/InventoryApi/Account"
    }
   },
-  "InventoryApiDeployment382203FB392d66201eabf4043cebdd04ae5c8305": {
+  "InventoryApiDeployment382203FB4927719a0de2e9f308ff053f0c683d27": {
    "Type": "AWS::ApiGateway::Deployment",
    "Properties": {
     "Description": "Automatically created by the RestApi construct",
@@ -512,6 +558,7 @@
     "InventoryApidetect0E3BECD0",
     "InventoryApiitemsidDELETECAC68FAF",
     "InventoryApiitemsidOPTIONS4587AB67",
+    "InventoryApiitemsidPUTA4E490A0",
     "InventoryApiitemsidA2A45EF1",
     "InventoryApiitemsGET5649A7DA",
     "InventoryApiitemsOPTIONSD745A98A",
@@ -538,7 +585,7 @@
    "Type": "AWS::ApiGateway::Stage",
    "Properties": {
     "DeploymentId": {
-     "Ref": "InventoryApiDeployment382203FB392d66201eabf4043cebdd04ae5c8305"
+     "Ref": "InventoryApiDeployment382203FB4927719a0de2e9f308ff053f0c683d27"
     },
     "RestApiId": {
      "Ref": "InventoryApi49B09E7D"
@@ -1036,6 +1083,113 @@
    },
    "Metadata": {
     "aws:cdk:path": "OfficeInventoryStack/InventoryApi/Default/items/{id}/DELETE/Resource"
+   }
+  },
+  "InventoryApiitemsidPUTApiPermissionOfficeInventoryStackInventoryApi78803E23PUTitemsidFAC79B7E": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "ApiHandler5E7490E8",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":execute-api:us-east-1:083868342691:",
+       {
+        "Ref": "InventoryApi49B09E7D"
+       },
+       "/",
+       {
+        "Ref": "InventoryApiDeploymentStageprod5D1FE13B"
+       },
+       "/PUT/items/*"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "OfficeInventoryStack/InventoryApi/Default/items/{id}/PUT/ApiPermission.OfficeInventoryStackInventoryApi78803E23.PUT..items.{id}"
+   }
+  },
+  "InventoryApiitemsidPUTApiPermissionTestOfficeInventoryStackInventoryApi78803E23PUTitemsid52E4547E": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "ApiHandler5E7490E8",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":execute-api:us-east-1:083868342691:",
+       {
+        "Ref": "InventoryApi49B09E7D"
+       },
+       "/test-invoke-stage/PUT/items/*"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "OfficeInventoryStack/InventoryApi/Default/items/{id}/PUT/ApiPermission.Test.OfficeInventoryStackInventoryApi78803E23.PUT..items.{id}"
+   }
+  },
+  "InventoryApiitemsidPUTA4E490A0": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "AuthorizationType": "NONE",
+    "HttpMethod": "PUT",
+    "Integration": {
+     "IntegrationHttpMethod": "POST",
+     "Type": "AWS_PROXY",
+     "Uri": {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":apigateway:us-east-1:lambda:path/2015-03-31/functions/",
+        {
+         "Fn::GetAtt": [
+          "ApiHandler5E7490E8",
+          "Arn"
+         ]
+        },
+        "/invocations"
+       ]
+      ]
+     }
+    },
+    "ResourceId": {
+     "Ref": "InventoryApiitemsidA2A45EF1"
+    },
+    "RestApiId": {
+     "Ref": "InventoryApi49B09E7D"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "OfficeInventoryStack/InventoryApi/Default/items/{id}/PUT/Resource"
    }
   },
   "InventoryApiuploadurlD6D9027D": {
@@ -1817,6 +1971,12 @@
   "WebsiteBucket75C24D94": {
    "Type": "AWS::S3::Bucket",
    "Properties": {
+    "PublicAccessBlockConfiguration": {
+     "BlockPublicAcls": true,
+     "BlockPublicPolicy": true,
+     "IgnorePublicAcls": true,
+     "RestrictPublicBuckets": true
+    },
     "Tags": [
      {
       "Key": "aws-cdk:auto-delete-objects",
@@ -1842,6 +2002,40 @@
     },
     "PolicyDocument": {
      "Statement": [
+      {
+       "Action": "s3:*",
+       "Condition": {
+        "Bool": {
+         "aws:SecureTransport": "false"
+        }
+       },
+       "Effect": "Deny",
+       "Principal": {
+        "AWS": "*"
+       },
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "WebsiteBucket75C24D94",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "WebsiteBucket75C24D94",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
       {
        "Action": [
         "s3:PutBucketPolicy",
@@ -2050,7 +2244,7 @@
      "cdk-hnb659fds-assets-083868342691-us-east-1"
     ],
     "SourceObjectKeys": [
-     "abf129fd8970e0727b4cea68bfb42a973664ee0db5d03085014202ae607e735e.zip"
+     "5f7a15ec7d643edef0e5a8c84389ef81f937b05345d9c966cdc69bf1c32435c2.zip"
     ],
     "DestinationBucketName": {
      "Ref": "WebsiteBucket75C24D94"

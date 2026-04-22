@@ -84,6 +84,7 @@ export class InventoryStack extends cdk.Stack {
 
     const singleItem = items.addResource("{id}");
     singleItem.addMethod("DELETE", new apigateway.LambdaIntegration(apiHandler));
+    singleItem.addMethod("PUT", new apigateway.LambdaIntegration(apiHandler));
 
     const upload = api.root.addResource("upload-url");
     upload.addMethod("GET", new apigateway.LambdaIntegration(apiHandler));

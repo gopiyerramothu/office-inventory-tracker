@@ -64,3 +64,13 @@ export async function toggleAdmin(id, isAdmin) {
   });
   return res.json();
 }
+
+
+export async function updateItem(id, data) {
+  const res = await fetch(`${API_BASE}/items/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}

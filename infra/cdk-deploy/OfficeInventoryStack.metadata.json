@@ -162,7 +162,7 @@
   "/OfficeInventoryStack/InventoryApi/Deployment/Resource": [
     {
       "type": "aws:cdk:logicalId",
-      "data": "InventoryApiDeployment382203FB392d66201eabf4043cebdd04ae5c8305"
+      "data": "InventoryApiDeployment382203FB4927719a0de2e9f308ff053f0c683d27"
     }
   ],
   "/OfficeInventoryStack/InventoryApi/DeploymentStage.prod/Resource": [
@@ -421,6 +421,24 @@
     {
       "type": "aws:cdk:logicalId",
       "data": "InventoryApiitemsidDELETECAC68FAF"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/{id}/PUT/ApiPermission.OfficeInventoryStackInventoryApi78803E23.PUT..items.{id}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsidPUTApiPermissionOfficeInventoryStackInventoryApi78803E23PUTitemsidFAC79B7E"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/{id}/PUT/ApiPermission.Test.OfficeInventoryStackInventoryApi78803E23.PUT..items.{id}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsidPUTApiPermissionTestOfficeInventoryStackInventoryApi78803E23PUTitemsid52E4547E"
+    }
+  ],
+  "/OfficeInventoryStack/InventoryApi/Default/items/{id}/PUT/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InventoryApiitemsidPUTA4E490A0"
     }
   ],
   "/OfficeInventoryStack/InventoryApi/Default/users/{id}/OPTIONS/Resource": [

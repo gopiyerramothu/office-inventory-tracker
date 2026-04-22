@@ -74,6 +74,29 @@ export const handler = async (event) => {
       };
     }
 
+    // PUT /items/{id} — update an item
+    if (httpMethod === "PUT" && resource === "/items/{id}") {
+      const data = JSON.parse(body);
+      const { Items = [] } = await ddb.send(new ScanCommand({
+        TableName: TABLE,
+        FilterExpression: "id = :id",
+        ExpressionAttributeValues: { ":id": pathParameters.id },
+      }));
+      if (Items.length === 0) return { statusCode: 404, headers, body: JSON.stringify({ error: "Item not found" }) };
+      const item = Items[0];
+      if (data.itemName !== undefined) item.itemName = data.itemName;
+      if (data.description !== undefined) item.description = data.description;
+      if (data.itemType !== undefined) item.itemType = data.itemType;
+      if (data.serialNumber !== undefined) item.serialNumber = data.serialNumber;
+      if (data.status !== undefined) item.status = data.status;
+      if (data.location !== undefined) item.location = data.location;
+      if (data.notes !== undefined) item.notes = data.notes;
+      item.updatedAt = new Date().toISOString();
+      item.updatedBy = data.updatedBy || "";
+      await ddb.send(new PutCommand({ TableName: TABLE, Item: item }));
+      return { statusCode: 200, headers, body: JSON.stringify(item) };
+    }
+
     // GET /upload-url — get presigned URL for image upload
     if (httpMethod === "GET" && resource === "/upload-url") {
       const key = `uploads/${randomUUID()}.jpg`;

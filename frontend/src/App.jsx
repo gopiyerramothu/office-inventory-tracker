@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "react-oidc-context";
-import { fetchItems, addItem, deleteItem, getUploadUrl, uploadImage, detectLabels, fetchUsers, registerUser, toggleAdmin } from "./api.js";
+import { fetchItems, addItem, deleteItem, getUploadUrl, uploadImage, detectLabels, fetchUsers, registerUser, toggleAdmin, updateItem } from "./api.js";
 import {
   IconMonitor, IconBriefcase, IconTv, IconMic, IconBox,
   IconSearch, IconCamera, IconTrash, IconCheck, IconX,
@@ -9,6 +9,7 @@ import {
 import { IconDownload } from "./icons.jsx";
 import { IconUsers } from "./icons.jsx";
 import { IconPlus } from "./icons.jsx";
+import { IconEdit } from "./icons.jsx";
 import * as XLSX from "xlsx";
 
 const ITEM_TYPES = [
@@ -547,10 +548,23 @@ function InventoryTab() {
   const [showWorking, setShowWorking] = useState(true);
   const [filterLocation, setFilterLocation] = useState("All");
   const [refreshing, setRefreshing] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { loadItems(); }, []);
   async function loadItems() { setRefreshing(true); try { const d = await fetchItems(); setItems(Array.isArray(d) ? d : []); } catch {} setRefreshing(false); }
   async function handleDelete(id) { if (!confirm("Remove this item?")) return; await deleteItem(id); await loadItems(); }
+
+  async function handleSaveEdit() {
+    if (!editItem) return;
+    setSaving(true);
+    try {
+      await updateItem(editItem.id, editItem);
+      setEditItem(null);
+      await loadItems();
+    } catch (err) { alert("Failed to save: " + err.message); }
+    setSaving(false);
+  }
 
   function exportExcel() {
     const rows = filtered.map((item, idx) => ({
@@ -687,9 +701,14 @@ function InventoryTab() {
                     <td style={{ ...td, fontSize: 12, color: C.textSecondary }}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—"}</td>
                     <td style={{ ...td, fontSize: 12, color: C.textSecondary, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.notes || "—"}</td>
                     <td style={{ ...td, textAlign: "center" }}>
-                      <button onClick={() => handleDelete(item.id)} aria-label={`Delete ${item.itemName || item.name}`} style={{ background: "none", border: `1px solid #fad4d4`, color: C.danger, borderRadius: 4, padding: "4px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11 }}>
-                        <IconTrash style={{ width: 12, height: 12 }} />
-                      </button>
+                      <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                        <button onClick={() => setEditItem({ ...item })} aria-label={`Edit ${item.itemName || item.name}`} style={{ background: "none", border: `1px solid ${C.border}`, color: C.accent, borderRadius: 4, padding: "4px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+                          <IconEdit style={{ width: 12, height: 12 }} />
+                        </button>
+                        <button onClick={() => handleDelete(item.id)} aria-label={`Delete ${item.itemName || item.name}`} style={{ background: "none", border: `1px solid #fad4d4`, color: C.danger, borderRadius: 4, padding: "4px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+                          <IconTrash style={{ width: 12, height: 12 }} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -698,6 +717,35 @@ function InventoryTab() {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {editItem && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setEditItem(null)}>
+          <div style={{ background: C.card, borderRadius: 10, padding: 28, width: 500, maxWidth: "90vw", maxHeight: "90vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, margin: 0 }}>Edit Item</h3>
+              <button onClick={() => setEditItem(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textSecondary }}><IconX style={{ width: 18, height: 18 }} /></button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div><label style={labelStyle}>Item Name</label><input style={inputStyle} value={editItem.itemName || editItem.name || ""} onChange={(e) => setEditItem({ ...editItem, itemName: e.target.value })} /></div>
+              <div><label style={labelStyle}>Item Type</label><select style={inputStyle} value={editItem.itemType || editItem.category || ""} onChange={(e) => setEditItem({ ...editItem, itemType: e.target.value })}>{ITEM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+            </div>
+            <div style={{ marginBottom: 12 }}><label style={labelStyle}>Description</label><input style={inputStyle} value={editItem.description || ""} onChange={(e) => setEditItem({ ...editItem, description: e.target.value })} /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div><label style={labelStyle}>Serial Number</label><input style={inputStyle} value={editItem.serialNumber || ""} onChange={(e) => setEditItem({ ...editItem, serialNumber: e.target.value })} /></div>
+              <div><label style={labelStyle}>Status</label><select style={inputStyle} value={editItem.status || "Working"} onChange={(e) => setEditItem({ ...editItem, status: e.target.value })}>{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+              <div><label style={labelStyle}>Location</label><select style={inputStyle} value={editItem.location || editItem.room || ""} onChange={(e) => setEditItem({ ...editItem, location: e.target.value })}>{LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}</select></div>
+              <div><label style={labelStyle}>Notes</label><input style={inputStyle} value={editItem.notes || ""} onChange={(e) => setEditItem({ ...editItem, notes: e.target.value })} /></div>
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setEditItem(null)} style={{ padding: "8px 16px", background: C.bg, color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleSaveEdit} disabled={saving} style={{ padding: "8px 20px", background: C.primary, color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "Save Changes"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
