@@ -1,5 +1,7 @@
 name: Deploy to AWS
 
+# Disabled until AWS secrets are configured in GitHub repo settings
+# To enable: remove the 'if: false' line and add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY secrets
 on:
   push:
     branches: [main]
@@ -12,6 +14,7 @@ env:
 
 jobs:
   deploy:
+    if: false  # Disabled until AWS secrets are configured
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
